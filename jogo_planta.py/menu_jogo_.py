@@ -2,6 +2,7 @@ import pygame
 from jogo_planta import rodar_quiz
 from jogo_memoria import rodar_memoria
 from jogo_zombies import rodar_pvz
+from jogo_defesa import rodar_proteja_planta
 
 pygame.init()
 LARGURA, ALTURA = 800, 600
@@ -42,7 +43,7 @@ class Botao:
 
 btn_quiz      = Botao(250, 180, 300, 70, "Quiz Botanico")
 btn_memoria   = Botao(250, 270, 300, 70, "Jogo da Memoria")
-btn_regar     = Botao(250, 360, 300, 70, "Regue a Planta")
+btn_regar     = Botao(250, 360, 300, 70, "Proteja a Planta")
 btn_adivinhar = Botao(250, 450, 300, 70, "Defenda a Torre")
 
 estado  = "MENU_JOGOS"
@@ -66,7 +67,7 @@ while rodando:
             elif btn_memoria.verificar_clique(evento):
                 rodar_memoria(tela)
             elif btn_regar.verificar_clique(evento):
-                estado = "REGAR"
+                rodar_proteja_planta(tela)
             elif btn_adivinhar.verificar_clique(evento):
                 rodar_pvz(tela)
 

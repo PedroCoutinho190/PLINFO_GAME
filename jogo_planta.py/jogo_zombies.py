@@ -13,12 +13,10 @@ BLACK  = (0, 0, 0)
 BLUE   = (100, 150, 255)
 WOOD   = (210, 180, 140)
 
-# Grid e UI
 ROWS, COLS    = 5, 9
 CELL_SIZE     = 80
 GRID_OFFSET_X = 50
 GRID_OFFSET_Y = 150
-MAX_ZOMBIES   = 15
 WIDTH, HEIGHT = 800, 600
 
 
@@ -42,6 +40,8 @@ def reset_game():
         "zombie_spawn_timer": 0,
         "sun_timer": 0,
         "zombies_spawned": 0,
+        "onda": 1,
+        "boss_spawnado": False,
         "state": "PLAYING"
     }
 
@@ -89,20 +89,50 @@ class Plant:
 
 
 class Zombie:
-    def __init__(self, lane):
+    def __init__(self, lane, coros_img, onda):
         self.x     = WIDTH
         self.y     = GRID_OFFSET_Y + lane * CELL_SIZE + 10
-        self.speed = 0.5
-        self.hp    = 100
+        self.speed = 0.5 + (onda * 0.1)
+        self.hp    = 100 + (onda * 50)
         self.lane  = lane
         self.rect  = pygame.Rect(self.x, self.y, 60, 60)
+        self.img   = coros_img
 
     def update(self):
-        self.x    -= self.speed
+        self.x     -= self.speed
         self.rect.x = self.x
 
     def draw(self, surface):
-        pygame.draw.rect(surface, RED, self.rect)
+        surface.blit(self.img, (self.x, self.y))
+
+
+class Boss:
+    def __init__(self, lane, boss_img):
+        self.x      = WIDTH
+        self.y      = GRID_OFFSET_Y + lane * CELL_SIZE - 10
+        self.speed  = 0.3
+        self.hp     = 1000
+        self.hp_max = 1000
+        self.lane   = lane
+        self.rect   = pygame.Rect(self.x, self.y, 90, 90)
+        self.img    = boss_img
+
+    def update(self):
+        self.x     -= self.speed
+        self.rect.x = self.x
+
+    def draw(self, surface, font_small):
+        surface.blit(self.img, (self.x, self.y))
+
+        # Barra de vida
+        barra_w = 90
+        vida_w  = int(barra_w * self.hp / self.hp_max)
+        pygame.draw.rect(surface, RED,   (self.x, self.y - 12, barra_w, 8))
+        pygame.draw.rect(surface, GREEN, (self.x, self.y - 12, vida_w,  8))
+
+        # Texto BOSS
+        txt = font_small.render("BOSS", True, RED)
+        surface.blit(txt, (self.x + 30, self.y - 25))
 
 
 class Bullet:
@@ -128,6 +158,9 @@ def rodar_pvz(tela):
     font_small = pygame.font.SysFont(None, 20)
     font_mini  = pygame.font.SysFont(None, 16)
     font_large = pygame.font.SysFont(None, 72)
+
+    coros_img = load_image("coros.png", (60, 60), RED)
+    boss_img  = load_image("coros.png", (90, 90), RED)
 
     plant_assets = {
         "camomila": load_image("camomila_estacao_dos_graos.jpg", (60, 60), YELLOW),
@@ -165,14 +198,12 @@ def rodar_pvz(tela):
             if game_data["state"] == "PLAYING":
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
 
-                    # Menu superior
                     if 10 <= mouse_pos[1] <= 70:
                         if   20  <= mouse_pos[0] <= 80:  game_data["selected_plant"] = "camomila"
                         elif 120 <= mouse_pos[0] <= 180: game_data["selected_plant"] = "babosa"
                         elif 220 <= mouse_pos[0] <= 280: game_data["selected_plant"] = "espada"
                         elif 320 <= mouse_pos[0] <= 380: game_data["selected_plant"] = "pa"
 
-                    # Grid
                     if (GRID_OFFSET_X <= mouse_pos[0] <= GRID_OFFSET_X + COLS * CELL_SIZE and
                             GRID_OFFSET_Y <= mouse_pos[1] <= GRID_OFFSET_Y + ROWS * CELL_SIZE):
 
@@ -198,8 +229,8 @@ def rodar_pvz(tela):
                                 game_data["plants"].append(
                                     Plant(px, py, game_data["selected_plant"], plant_assets)
                                 )
-                                game_data["money"]          -= cost
-                                game_data["selected_plant"]  = None
+                                game_data["money"]         -= cost
+                                game_data["selected_plant"] = None
 
             else:
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
@@ -209,10 +240,10 @@ def rodar_pvz(tela):
 
             # Camomila gera dinheiro
             game_data["sun_timer"] += 1
-            if game_data["sun_timer"] >= 180:
+            if game_data["sun_timer"] >= 300:
                 for p in game_data["plants"]:
                     if p.type == "camomila":
-                        game_data["money"] += 25
+                        game_data["money"] += 20
                 game_data["sun_timer"] = 0
 
             # Babosa atira
@@ -224,20 +255,35 @@ def rodar_pvz(tela):
                         game_data["bullets"].append(Bullet(p.x + 50, p.y + 20, lane))
                         p.timer = 0
 
-            # Spawn de zumbis
-            if game_data["zombies_spawned"] < MAX_ZOMBIES:
+            # =====================
+            # SISTEMA DE ONDAS
+            # =====================
+            onda        = game_data["onda"]
+            limite_onda = 2 + (onda * 3)
+            tempo_spawn = max(60, 600 - (onda * 100) - (game_data["zombies_spawned"] * 3))
+
+            if onda < 5 and game_data["zombies_spawned"] < limite_onda:
                 game_data["zombie_spawn_timer"] += 1
-                tempo_spawn = max(80, 200 - (game_data["zombies_spawned"] * 5))
                 if game_data["zombie_spawn_timer"] >= tempo_spawn:
                     lane = random.randint(0, ROWS - 1)
-                    game_data["zombies"].append(Zombie(lane))
+                    game_data["zombies"].append(Zombie(lane, coros_img, game_data["onda"]))
                     game_data["zombies_spawned"] += 1
                     game_data["zombie_spawn_timer"] = 0
 
-            elif len(game_data["zombies"]) == 0:
+            elif onda < 5 and len(game_data["zombies"]) == 0:
+                game_data["onda"]                += 1
+                game_data["zombies_spawned"]      = 0
+                game_data["zombie_spawn_timer"]   = 0
+
+            elif onda == 5 and not game_data["boss_spawnado"]:
+                lane = random.randint(0, ROWS - 1)
+                game_data["zombies"].append(Boss(lane, boss_img))
+                game_data["boss_spawnado"] = True
+
+            elif onda == 5 and game_data["boss_spawnado"] and len(game_data["zombies"]) == 0:
                 game_data["state"] = "VICTORY"
 
-            # Zumbis
+            # Zumbis e boss
             for z in game_data["zombies"][:]:
                 z.update()
                 if z.x < 0:
@@ -250,7 +296,7 @@ def rodar_pvz(tela):
                         p.hp    -= 1
                         if p.hp <= 0:
                             game_data["plants"].remove(p)
-                            z.speed = 0.5
+                            z.speed = 0.3 if isinstance(z, Boss) else 0.5
                         break
 
             # Balas
@@ -272,7 +318,10 @@ def rodar_pvz(tela):
         for p in game_data["plants"]:
             p.draw(tela, font_mini)
         for z in game_data["zombies"]:
-            z.draw(tela)
+            if isinstance(z, Boss):
+                z.draw(tela, font_small)
+            else:
+                z.draw(tela)
         for b in game_data["bullets"]:
             b.draw(tela)
 
@@ -280,32 +329,35 @@ def rodar_pvz(tela):
         pygame.draw.rect(tela, BLACK, (0, 0, WIDTH, 100))
 
         money_text = font_ui.render(f"Energia: {game_data['money']}", True, YELLOW)
-        horda_text = font_ui.render(f"Zumbis: {game_data['zombies_spawned']}/{MAX_ZOMBIES}", True, WHITE)
-        tela.blit(money_text, (630, 20))
-        tela.blit(horda_text, (630, 55))
+        horda_text = font_ui.render(f"Onda: {game_data['onda']}/5", True, WHITE)
+        tela.blit(money_text, (630, 15))
+        tela.blit(horda_text, (630, 50))
 
-        tela.blit(plant_assets["camomila"], (20, 10))
-        tela.blit(font_small.render("$50 (Gera)",    True, WHITE), (15,  75))
+        tela.blit(plant_assets["camomila"], (20,  10))
+        tela.blit(font_small.render("$50 (Gera)",   True, WHITE), (15,  75))
         tela.blit(plant_assets["babosa"],   (120, 10))
-        tela.blit(font_small.render("$100 (Atira)",  True, WHITE), (115, 75))
+        tela.blit(font_small.render("$100 (Atira)", True, WHITE), (115, 75))
         tela.blit(plant_assets["espada"],   (220, 10))
-        tela.blit(font_small.render("$50 (Escudo)",  True, WHITE), (210, 75))
+        tela.blit(font_small.render("$50 (Escudo)", True, WHITE), (210, 75))
 
         pygame.draw.rect(tela, BROWN, (320, 10, 60, 60))
         pygame.draw.rect(tela, GRAY,  (340, 20, 20, 25))
         pygame.draw.rect(tela, WOOD,  (347, 45,  6, 20))
         tela.blit(font_small.render("Pa (Excluir)", True, WHITE), (315, 75))
 
-        # Seleção visual
         sel = game_data["selected_plant"]
         if sel == "camomila": pygame.draw.rect(tela, WHITE, (20,  10, 60, 60), 3)
         elif sel == "babosa": pygame.draw.rect(tela, WHITE, (120, 10, 60, 60), 3)
         elif sel == "espada": pygame.draw.rect(tela, WHITE, (220, 10, 60, 60), 3)
         elif sel == "pa":     pygame.draw.rect(tela, WHITE, (320, 10, 60, 60), 3)
 
-        # ESC para voltar
         esc = font_small.render("ESC para voltar ao menu", True, GRAY)
         tela.blit(esc, (20, 108))
+
+        # Aviso de onda
+        if game_data["onda"] == 5 and not game_data["boss_spawnado"]:
+            aviso = font_ui.render("BOSS CHEGANDO!", True, RED)
+            tela.blit(aviso, (WIDTH//2 - aviso.get_width()//2, 120))
 
         # Telas de fim
         if game_data["state"] in ("GAME_OVER", "VICTORY"):

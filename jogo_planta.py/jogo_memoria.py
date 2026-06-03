@@ -15,13 +15,23 @@ COR_ERROU      = (224, 122, 95)
 COR_BORDA       = (190, 200, 175) 
 
 IMAGENS = [
+    "imagens/alecrim.png",
     "imagens/babosa.jpg",
+    "imagens/boldo.png",
     "imagens/camomila_estacao_dos_graos.jpg",
+    "imagens/cidreira.png",
+    "imagens/coentro.png",
     "imagens/comigo_ninguem_pode.jpg",
     "imagens/espada_de_sao_jorge.jpg",
+    "imagens/guaco.png",
     "imagens/hortela.jpg",
     "imagens/lotus.jpg",
+    "imagens/louro.jpg",
     "imagens/mamona.jpg",
+    "imagens/manjericao.png",
+    "imagens/oregano.png",
+    "imagens/salsa.png",
+    "imagens/tomilho.png",
     "imagens/vitoria_regia.jpg",
 ]
 
