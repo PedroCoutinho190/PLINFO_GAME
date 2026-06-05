@@ -2,7 +2,6 @@ import pygame
 import random
 import os
 
-# Cores
 WHITE  = (255, 255, 255)
 GREEN  = (50, 200, 50)
 BROWN  = (139, 69, 19)
@@ -12,6 +11,7 @@ GRAY   = (100, 100, 100)
 BLACK  = (0, 0, 0)
 BLUE   = (100, 150, 255)
 WOOD   = (210, 180, 140)
+ORANGE = (255, 140, 0)
 
 ROWS, COLS    = 5, 9
 CELL_SIZE     = 80
@@ -89,14 +89,14 @@ class Plant:
 
 
 class Zombie:
-    def __init__(self, lane, coros_img, onda):
+    def __init__(self, lane, img, onda):
         self.x     = WIDTH
         self.y     = GRID_OFFSET_Y + lane * CELL_SIZE + 10
-        self.speed = 0.5 + (onda * 0.1)
-        self.hp    = 100 + (onda * 50)
+        self.speed = 0.4 + (onda * 0.08)   # ← cresce mais devagar
+        self.hp    = 80 + (onda * 40)       # ← mais balanceado
         self.lane  = lane
         self.rect  = pygame.Rect(self.x, self.y, 60, 60)
-        self.img   = coros_img
+        self.img   = img
 
     def update(self):
         self.x     -= self.speed
@@ -123,14 +123,10 @@ class Boss:
 
     def draw(self, surface, font_small):
         surface.blit(self.img, (self.x, self.y))
-
-        # Barra de vida
         barra_w = 90
         vida_w  = int(barra_w * self.hp / self.hp_max)
         pygame.draw.rect(surface, RED,   (self.x, self.y - 12, barra_w, 8))
         pygame.draw.rect(surface, GREEN, (self.x, self.y - 12, vida_w,  8))
-
-        # Texto BOSS
         txt = font_small.render("BOSS", True, RED)
         surface.blit(txt, (self.x + 30, self.y - 25))
 
@@ -159,8 +155,14 @@ def rodar_pvz(tela):
     font_mini  = pygame.font.SysFont(None, 16)
     font_large = pygame.font.SysFont(None, 72)
 
-    coros_img = load_image("coros.png", (60, 60), RED)
-    boss_img  = load_image("coros.png", (90, 90), RED)
+    # ← imagem diferente por onda
+    pragas_imgs = {
+        1: load_image("praga1.png", (60, 60), (255, 100, 100)),
+        2: load_image("praga2.png", (60, 60), (220, 80,  80)),
+        3: load_image("praga3.png", (60, 60), (180, 60,  60)),
+        4: load_image("praga4.png", (60, 60), (140, 40,  40)),
+    }
+    boss_img = load_image("acaro.png", (90, 90), RED)
 
     plant_assets = {
         "camomila": load_image("camomila_estacao_dos_graos.jpg", (60, 60), YELLOW),
@@ -174,7 +176,6 @@ def rodar_pvz(tela):
     while running:
         tela.fill(BROWN)
 
-        # Desenha grid
         for row in range(ROWS):
             for col in range(COLS):
                 rect  = pygame.Rect(
@@ -255,9 +256,6 @@ def rodar_pvz(tela):
                         game_data["bullets"].append(Bullet(p.x + 50, p.y + 20, lane))
                         p.timer = 0
 
-            # =====================
-            # SISTEMA DE ONDAS
-            # =====================
             onda        = game_data["onda"]
             limite_onda = 2 + (onda * 3)
             tempo_spawn = max(60, 600 - (onda * 100) - (game_data["zombies_spawned"] * 3))
@@ -265,13 +263,14 @@ def rodar_pvz(tela):
             if onda < 5 and game_data["zombies_spawned"] < limite_onda:
                 game_data["zombie_spawn_timer"] += 1
                 if game_data["zombie_spawn_timer"] >= tempo_spawn:
-                    lane = random.randint(0, ROWS - 1)
-                    game_data["zombies"].append(Zombie(lane, coros_img, game_data["onda"]))
+                    lane     = random.randint(0, ROWS - 1)
+                    img_praga = pragas_imgs[onda]  # ← imagem da onda atual
+                    game_data["zombies"].append(Zombie(lane, img_praga, onda))
                     game_data["zombies_spawned"] += 1
                     game_data["zombie_spawn_timer"] = 0
 
             elif onda < 5 and len(game_data["zombies"]) == 0:
-                game_data["onda"]                += 1
+                game_data["onda"]               += 1
                 game_data["zombies_spawned"]      = 0
                 game_data["zombie_spawn_timer"]   = 0
 
@@ -283,7 +282,6 @@ def rodar_pvz(tela):
             elif onda == 5 and game_data["boss_spawnado"] and len(game_data["zombies"]) == 0:
                 game_data["state"] = "VICTORY"
 
-            # Zumbis e boss
             for z in game_data["zombies"][:]:
                 z.update()
                 if z.x < 0:
@@ -293,13 +291,12 @@ def rodar_pvz(tela):
                     lane_p = (p.y - GRID_OFFSET_Y) // CELL_SIZE
                     if lane_p == z.lane and z.rect.colliderect(pygame.Rect(p.x, p.y, 60, 60)):
                         z.speed  = 0
-                        p.hp    -= 1
+                        p.hp    -= 1 + (onda // 2)  # ← dano aumenta por onda
                         if p.hp <= 0:
                             game_data["plants"].remove(p)
-                            z.speed = 0.3 if isinstance(z, Boss) else 0.5
+                            z.speed = 0.3 if isinstance(z, Boss) else 0.4 + (onda * 0.08)
                         break
 
-            # Balas
             for b in game_data["bullets"][:]:
                 b.update()
                 hit = False
@@ -314,7 +311,6 @@ def rodar_pvz(tela):
                     if b in game_data["bullets"]:
                         game_data["bullets"].remove(b)
 
-        # Desenha elementos
         for p in game_data["plants"]:
             p.draw(tela, font_mini)
         for z in game_data["zombies"]:
@@ -325,11 +321,10 @@ def rodar_pvz(tela):
         for b in game_data["bullets"]:
             b.draw(tela)
 
-        # UI superior
         pygame.draw.rect(tela, BLACK, (0, 0, WIDTH, 100))
 
         money_text = font_ui.render(f"Energia: {game_data['money']}", True, YELLOW)
-        horda_text = font_ui.render(f"Onda: {game_data['onda']}/5", True, WHITE)
+        horda_text = font_ui.render(f"Onda: {game_data['onda']}/5",   True, WHITE)
         tela.blit(money_text, (630, 15))
         tela.blit(horda_text, (630, 50))
 
@@ -354,23 +349,17 @@ def rodar_pvz(tela):
         esc = font_small.render("ESC para voltar ao menu", True, GRAY)
         tela.blit(esc, (20, 108))
 
-        # Aviso de onda
         if game_data["onda"] == 5 and not game_data["boss_spawnado"]:
             aviso = font_ui.render("BOSS CHEGANDO!", True, RED)
             tela.blit(aviso, (WIDTH//2 - aviso.get_width()//2, 120))
 
-        # Telas de fim
         if game_data["state"] in ("GAME_OVER", "VICTORY"):
             overlay = pygame.Surface((WIDTH, HEIGHT))
             overlay.set_alpha(180)
             overlay.fill(BLACK)
             tela.blit(overlay, (0, 0))
 
-            if game_data["state"] == "GAME_OVER":
-                txt1 = font_large.render("VOCE PERDEU!", True, RED)
-            else:
-                txt1 = font_large.render("VITORIA!", True, GREEN)
-
+            txt1 = font_large.render("VOCE PERDEU!", True, RED) if game_data["state"] == "GAME_OVER" else font_large.render("VITORIA!", True, GREEN)
             txt2 = font_ui.render("Pressione R para reiniciar | ESC para voltar", True, WHITE)
             tela.blit(txt1, (WIDTH//2 - txt1.get_width()//2, HEIGHT//2 - 50))
             tela.blit(txt2, (WIDTH//2 - txt2.get_width()//2, HEIGHT//2 + 30))
