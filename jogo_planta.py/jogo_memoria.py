@@ -233,7 +233,7 @@ class JogoMemoria:
 
             if self.estado == "VITORIA":
                 pygame.draw.rect(self.tela, (255, 255, 255), (150, 220, 500, 140), border_radius=16)
-                v1 = self.fonte_vitoria.render("Parabens! Completou o jogo!", True, self.COR_ACERTOU)
+                v1 = self.fonte_vitoria.render("Parabens, Completou o jogo!", True, self.COR_ACERTOU)
                 v2 = self.fonte_info.render(f"Tentativas: {self.tentativas}", True, self.COR_TEXTO)
                 v3 = self.fonte_pequena.render("Clique para voltar ao menu", True, self.COR_BOTAO)
                 self.tela.blit(v1, (self.LARGURA//2 - v1.get_width()//2, 235))
