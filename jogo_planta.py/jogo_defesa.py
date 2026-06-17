@@ -3,14 +3,14 @@ import random
 import math
 
 # --- NOVA PALETA DE CORES (IDÊNTICA AO MENU) ---
-COR_FUNDO         = (240, 242, 235)  # Bege claro bem natural
-COR_TEXTO         = (44, 53, 57)     # Cinza escuro/Verde musgo profundo
-COR_SUBTITULO     = (76, 133, 119)   # Verde intermediário elegante
-COR_BOTAO         = (67, 143, 114)   # Verde folha mais vivo
-COR_BOTAO_HOVER   = (82, 171, 137)   # Verde brilhante para o hover
-COR_SOMBRA        = (41, 92, 73)     # Tom escuro para profundidade
-COR_BORDA_MOLDURA = (210, 218, 201)  # Borda da tela
-COR_PRAGA         = (200, 80, 80)    # Vermelho um pouco mais suave para as pragas
+COR_FUNDO         = (240, 242, 235)  
+COR_TEXTO         = (44, 53, 57)     
+COR_SUBTITULO     = (76, 133, 119)   
+COR_BOTAO         = (67, 143, 114)   
+COR_BOTAO_HOVER   = (82, 171, 137)   
+COR_SOMBRA        = (41, 92, 73)     
+COR_BORDA_MOLDURA = (210, 218, 201)  
+COR_PRAGA         = (200, 80, 80)    
 
 
 class Planta:
