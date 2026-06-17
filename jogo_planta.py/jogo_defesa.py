@@ -2,13 +2,16 @@ import pygame
 import random
 import math
 
-# --- Constantes Globais de Estilo ---
-COR_FUNDO = (244, 241, 222)
-COR_TEXTO = (61, 64, 91)
-COR_BORDA = (190, 200, 175)
-COR_BOTAO = (129, 178, 154)
-COR_BOTAO_HOVER = (156, 197, 178)
-COR_PRAGA  = (224, 122, 95)
+# --- NOVA PALETA DE CORES (IDÊNTICA AO MENU) ---
+COR_FUNDO         = (240, 242, 235)  # Bege claro bem natural
+COR_TEXTO         = (44, 53, 57)     # Cinza escuro/Verde musgo profundo
+COR_SUBTITULO     = (76, 133, 119)   # Verde intermediário elegante
+COR_BOTAO         = (67, 143, 114)   # Verde folha mais vivo
+COR_BOTAO_HOVER   = (82, 171, 137)   # Verde brilhante para o hover
+COR_SOMBRA        = (41, 92, 73)     # Tom escuro para profundidade
+COR_BORDA_MOLDURA = (210, 218, 201)  # Borda da tela
+COR_PRAGA         = (200, 80, 80)    # Vermelho um pouco mais suave para as pragas
+
 
 class Planta:
     """Representa a planta central que precisa ser defendida."""
@@ -32,8 +35,8 @@ class Planta:
         diametro = int(self.raio * 2)
         img_jogo = pygame.transform.scale(self.imagem, (diametro, diametro))
         tela.blit(img_jogo, (self.x - self.raio, self.y - self.raio))
-        # Círculo sutil indicando a hitbox
-        pygame.draw.circle(tela, COR_BORDA, (self.x, self.y), self.raio, 2)
+        # Círculo sutil indicando a hitbox com a cor de borda do menu
+        pygame.draw.circle(tela, COR_BORDA_MOLDURA, (self.x, self.y), self.raio, 2)
 
     def desenhar_barra_vida(self, tela):
         largura_barra = 160
@@ -41,12 +44,13 @@ class Planta:
         by = self.y + self.raio + 20
         
         # Fundo da barra
-        pygame.draw.rect(tela, (210, 210, 210), (bx, by, largura_barra, 14), border_radius=4) 
+        pygame.draw.rect(tela, COR_BORDA_MOLDURA, (bx, by, largura_barra, 14), border_radius=4) 
         
         # Vida atual
         largura_vida = int((self.vida / self.vida_max) * largura_barra)
-        cor_vida = (100, 180, 100) if self.vida > 35 else (200, 90, 90) 
+        cor_vida = COR_BOTAO_HOVER if self.vida > 35 else COR_PRAGA 
         pygame.draw.rect(tela, cor_vida, (bx, by, largura_vida, 14), border_radius=4)
+
 
 class Praga:
     """Representa o inimigo (ácaro) que ataca a planta."""
@@ -66,14 +70,11 @@ class Praga:
         dist_centro = math.hypot(dx, dy)
         
         # Aumenta a velocidade baseando-se em quantas já nasceram
-        # Multiplicador: aumenta 0.05 de velocidade para CADA praga que nasce
         aumento_velocidade = numero_spawn * 0.05 
         velocidade_base = random.uniform(1.8, 3.2) + aumento_velocidade
         
         self.vx = (dx / dist_centro) * velocidade_base
         self.vy = (dy / dist_centro) * velocidade_base
-
-   
 
     def atualizar(self):
         self.x += self.vx
@@ -97,29 +98,51 @@ class Praga:
 
 
 class OpcaoSelecao:
-    """Representa um item selecionável na tela de menu inicial."""
+    """Representa um item selecionável na tela de menu inicial (Modificado para Botão 3D)."""
     def __init__(self, nome, arquivo_img, rect):
         self.nome = nome
-        self.rect = rect
+        self.rect_original = rect
+        # Rect dinâmico para o efeito de "afundar"
+        self.rect = pygame.Rect(rect.x, rect.y, rect.width, rect.height)
+        
         try:
             self.img = pygame.image.load(arquivo_img).convert_alpha()
         except pygame.error:
-            self.img = pygame.Surface((90, 90))
-            self.img.fill(COR_BOTAO)
+            self.img = pygame.Surface((rect.width - 20, rect.height - 40))
+            self.img.fill((200, 200, 200))
 
     def desenhar(self, tela, pos_mouse, fonte_pequena):
-        # Efeito visual de hover
-        if self.rect.collidepoint(pos_mouse):
-            pygame.draw.rect(tela, COR_BOTAO_HOVER, self.rect.inflate(10, 10), border_radius=15)
+        # Efeito hover: afunda 3 pixels
+        if self.rect_original.collidepoint(pos_mouse):
+            cor_atual = COR_BOTAO_HOVER
+            self.rect.y = self.rect_original.y + 3
+        else:
+            cor_atual = COR_BOTAO
+            self.rect.y = self.rect_original.y
+
+        # 1. Sombra do Botão
+        sombra_rect = pygame.Rect(self.rect_original.x, self.rect_original.y + 5, self.rect_original.width, self.rect_original.height)
+        pygame.draw.rect(tela, COR_SOMBRA, sombra_rect, border_radius=15)
+
+        # 2. Botão Principal
+        pygame.draw.rect(tela, cor_atual, self.rect, border_radius=15)
         
-        # Imagem e Borda
-        img_menu = pygame.transform.scale(self.img, (self.rect.width - 10, self.rect.height - 10))
-        tela.blit(img_menu, (self.rect.x + 5, self.rect.y + 5))
-        pygame.draw.rect(tela, COR_TEXTO, self.rect, 3, border_radius=12)
+        # 3. Borda interna
+        pygame.draw.rect(tela, (255, 255, 255), self.rect, width=1, border_radius=15)
         
-        # Texto
-        txt_nome = fonte_pequena.render(self.nome, True, COR_TEXTO)
-        tela.blit(txt_nome, (self.rect.centerx - txt_nome.get_width()//2, self.rect.bottom + 10))
+        # 4. Imagem da Planta
+        img_menu = pygame.transform.scale(self.img, (self.rect.width - 20, self.rect.height - 40))
+        tela.blit(img_menu, (self.rect.x + 10, self.rect.y + 10))
+        
+        # 5. Texto
+        txt_nome = fonte_pequena.render(self.nome, True, (255, 255, 255))
+        tela.blit(txt_nome, (self.rect.centerx - txt_nome.get_width()//2, self.rect.bottom - 25))
+
+    def clicou(self, evento):
+        # Valida o clique baseado na posição original
+        if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+            return self.rect_original.collidepoint(evento.pos)
+        return False
 
 
 class JogoProtejaPlanta:
@@ -128,11 +151,12 @@ class JogoProtejaPlanta:
         self.tela = tela
         self.LARGURA, self.ALTURA = tela.get_size()
         
-        # Fontes
-        self.fonte = pygame.font.SysFont("arial", 24, bold=True)
-        self.fonte_titulo = pygame.font.SysFont("arial", 36, bold=True)
-        self.fonte_grande = pygame.font.SysFont("arial", 52, bold=True)
-        self.fonte_pequena = pygame.font.SysFont("arial", 16, bold=True)
+        # --- FONTES PADRONIZADAS ---
+        self.fonte         = pygame.font.SysFont("segoe ui", 24, bold=True)
+        self.fonte_titulo  = pygame.font.SysFont("cambria", 42, bold=True)
+        self.fonte_subtit  = pygame.font.SysFont("calibri", 24, italic=True)
+        self.fonte_grande  = pygame.font.SysFont("cambria", 52, bold=True)
+        self.fonte_pequena = pygame.font.SysFont("segoe ui", 16, bold=True)
         
         self.relogio = pygame.time.Clock()
         self.estado_jogo = "SELECAO"
@@ -147,16 +171,18 @@ class JogoProtejaPlanta:
             {"nome": "Coentro", "arquivo": "imagens/coentro.png"},
             {"nome": "Hortelã", "arquivo": "imagens/hortela.jpg"},
             {"nome": "Lótus", "arquivo": "imagens/lotus.jpg"},
-            {"nome": "C. Ninguém Pode", "arquivo": "imagens/comigo_ninguem_pode.jpg"}
+            {"nome": "Ninguém Pode", "arquivo": "imagens/comigo_ninguem_pode.jpg"}
         ]
         
         self.opcoes_plantas = []
-        largura_item = 110
-        espacamento = 30
+        # Tamanho ajustado para caber texto + imagem confortavelmente dentro do botão
+        largura_item = 120
+        altura_item  = 150
+        espacamento  = 25
         x_inicial = (self.LARGURA - (5 * largura_item + 4 * espacamento)) // 2
         
         for i, dados in enumerate(dados_plantas):
-            rect = pygame.Rect(x_inicial + i * (largura_item + espacamento), 250, largura_item, largura_item)
+            rect = pygame.Rect(x_inicial + i * (largura_item + espacamento), 240, largura_item, altura_item)
             self.opcoes_plantas.append(OpcaoSelecao(dados["nome"], dados["arquivo"], rect))
 
         # Imagem da praga
@@ -189,7 +215,7 @@ class JogoProtejaPlanta:
                 
                 if self.estado_jogo == "SELECAO":
                     for opcao in self.opcoes_plantas:
-                        if opcao.rect.collidepoint(evento.pos):
+                        if opcao.clicou(evento):
                             # Instancia a planta no centro da tela baseada na escolha
                             self.planta = Planta(self.LARGURA // 2, self.ALTURA // 2, opcao.img)
                             self.estado_jogo = "JOGANDO"
@@ -233,19 +259,30 @@ class JogoProtejaPlanta:
 
     def desenhar_tela(self):
         self.tela.fill(COR_FUNDO)
-        pygame.draw.rect(self.tela, COR_BORDA, (15, 15, self.LARGURA-30, self.ALTURA-30), 4, border_radius=20)
+        
+        # Moldura externa idêntica ao menu
+        pygame.draw.rect(
+            self.tela, COR_BORDA_MOLDURA,
+            (20, 20, self.LARGURA - 40, self.ALTURA - 40), 3, border_radius=25
+        )
         
         pos_mouse = pygame.mouse.get_pos()
 
         if self.estado_jogo == "SELECAO":
-            txt_sel = self.fonte_titulo.render("Escolha a planta que quer defender:", True, COR_TEXTO)
-            self.tela.blit(txt_sel, (self.LARGURA//2 - txt_sel.get_width()//2, 140))
+            # Títulos
+            titulo = self.fonte_titulo.render("Proteja a Planta", True, COR_TEXTO)
+            subtit = self.fonte_subtit.render("Escolha a planta que quer defender contra os ácaros:", True, COR_SUBTITULO)
             
+            self.tela.blit(titulo, (self.LARGURA//2 - titulo.get_width()//2, 80))
+            self.tela.blit(subtit, (self.LARGURA//2 - subtit.get_width()//2, 140))
+            
+            # Botões Plantas
             for opcao in self.opcoes_plantas:
                 opcao.desenhar(self.tela, pos_mouse, self.fonte_pequena)
 
-            txt_voltar = self.fonte.render("ESC para voltar ao menu principal", True, COR_TEXTO)
-            self.tela.blit(txt_voltar, (self.LARGURA//2 - txt_voltar.get_width()//2, self.ALTURA - 80))
+            # Voltar
+            txt_voltar = self.fonte_pequena.render("Pressione ESC para voltar ao menu", True, COR_SOMBRA)
+            self.tela.blit(txt_voltar, (self.LARGURA//2 - txt_voltar.get_width()//2, self.ALTURA - 70))
 
         elif self.estado_jogo == "JOGANDO":
             self.planta.desenhar(self.tela)
@@ -258,17 +295,19 @@ class JogoProtejaPlanta:
             txt_score = self.fonte.render(f"Pragas Eliminadas: {self.score}", True, COR_TEXTO)
             self.tela.blit(txt_score, (40, 40))
             
-            txt_esc = self.fonte.render("ESC para Voltar", True, COR_TEXTO)
+            txt_esc = self.fonte.render("ESC: Voltar", True, COR_TEXTO)
             self.tela.blit(txt_esc, (self.LARGURA - txt_esc.get_width() - 40, 40))
 
         elif self.estado_jogo == "GAME_OVER":
             txt_go = self.fonte_grande.render("PLANTA DESTRUÍDA!", True, COR_PRAGA)
-            txt_ponto = self.fonte.render(f"Você salvou a planta de {self.score} pragas.", True, COR_TEXTO)
-            txt_restart = self.fonte.render("Clique na tela para escolher outra planta ou ESC para sair", True, COR_TEXTO)
+            txt_ponto = self.fonte_titulo.render(f"Você eliminou {self.score} pragas.", True, COR_TEXTO)
+            txt_restart = self.fonte_subtit.render("Clique em qualquer lugar para tentar novamente.", True, COR_SUBTITULO)
+            txt_esc = self.fonte_pequena.render("Pressione ESC para sair", True, COR_SOMBRA)
             
-            self.tela.blit(txt_go, (self.LARGURA//2 - txt_go.get_width()//2, self.ALTURA//2 - 60))
-            self.tela.blit(txt_ponto, (self.LARGURA//2 - txt_ponto.get_width()//2, self.ALTURA//2 + 10))
+            self.tela.blit(txt_go, (self.LARGURA//2 - txt_go.get_width()//2, self.ALTURA//2 - 90))
+            self.tela.blit(txt_ponto, (self.LARGURA//2 - txt_ponto.get_width()//2, self.ALTURA//2 - 10))
             self.tela.blit(txt_restart, (self.LARGURA//2 - txt_restart.get_width()//2, self.ALTURA//2 + 60))
+            self.tela.blit(txt_esc, (self.LARGURA//2 - txt_esc.get_width()//2, self.ALTURA//2 + 100))
 
         pygame.display.flip()
 
@@ -292,3 +331,4 @@ def rodar_proteja_planta(tela):
     """
     jogo = JogoProtejaPlanta(tela)
     jogo.executar()
+

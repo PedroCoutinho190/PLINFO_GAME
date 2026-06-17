@@ -3,6 +3,19 @@ import time
 import random
 from perguntas_quiz import perguntas
 
+# ============================================================
+# PALETA DE CORES GLOBAL PADRONIZADA
+# ============================================================
+COR_FUNDO         = (240, 242, 235)
+COR_TEXTO         = (44, 53, 57)
+COR_SUBTITULO     = (76, 133, 119)
+COR_BOTAO         = (67, 143, 114)
+COR_BOTAO_HOVER   = (82, 171, 137)
+COR_SOMBRA        = (41, 92, 73)
+COR_BORDA_MOLDURA = (210, 218, 201)
+COR_CERTO         = (82, 183, 136)
+COR_ERRADO        = (200, 80, 80)
+
 
 # ============================================================
 # FUNÇÕES DE DESENHO TEMÁTICO
@@ -14,14 +27,13 @@ def desenhar_folha(surface, x, y, cor):
 
 
 def desenhar_mascote(surface, x, y, estado_resposta=None):
-    COR_MADEIRA = (212, 163, 115)
-    COR_CERTO   = (82, 183, 136)
-
+    COR_MADEIRA = (182, 143, 105) # Tom ligeiramente ajustado
+    
     pygame.draw.polygon(surface, COR_MADEIRA,
                         [(x-30, y+30), (x+30, y+30), (x+20, y+70), (x-20, y+70)])
-    pygame.draw.line(surface, (180, 130, 90), (x-30, y+30), (x+30, y+30), 6)
+    pygame.draw.line(surface, (150, 110, 80), (x-30, y+30), (x+30, y+30), 6)
 
-    cor_planta = COR_CERTO if estado_resposta is not False else (180, 190, 180)
+    cor_planta = COR_CERTO if estado_resposta is not False else (160, 180, 160)
     pygame.draw.circle(surface, cor_planta, (x,     y),      25)
     pygame.draw.circle(surface, cor_planta, (x-20,  y-5),    20)
     pygame.draw.circle(surface, cor_planta, (x+20,  y-5),    20)
@@ -38,34 +50,47 @@ def desenhar_mascote(surface, x, y, estado_resposta=None):
 
 
 # ============================================================
-# CLASSE BOTAO
+# CLASSE BOTAO COM EFEITO 3D
 # ============================================================
 
 class BotaoOpcao:
-    COR_BOTAO       = (129, 178, 154)
-    COR_BOTAO_HOVER = (156, 197, 178)
-    COR_CERTO       = (82, 183, 136)
-    COR_ERRADO      = (224, 122, 95)
-
     def __init__(self, x, y, largura, altura, texto, imagem_path=None):
-        self.rect      = pygame.Rect(x, y, largura, altura)
-        self.texto     = texto
-        self.cor_atual = self.COR_BOTAO
-        self.imagem    = None
+        self.rect_original = pygame.Rect(x, y, largura, altura)
+        self.rect          = pygame.Rect(x, y, largura, altura)
+        self.texto         = texto
+        self.cor_atual     = COR_BOTAO
+        self.imagem        = None
+        
         if imagem_path:
             try:
-                img        = pygame.image.load(imagem_path)
+                img         = pygame.image.load(imagem_path)
                 self.imagem = pygame.transform.scale(img, (55, 55))
             except:
                 self.imagem = None
 
     def desenhar(self, surface, fonte):
         pos_mouse = pygame.mouse.get_pos()
-        cor = (self.COR_BOTAO_HOVER
-               if self.rect.collidepoint(pos_mouse) and self.cor_atual == self.COR_BOTAO
-               else self.cor_atual)
-        pygame.draw.rect(surface, cor, self.rect, border_radius=12)
+        is_hovered = self.rect_original.collidepoint(pos_mouse)
+        
+        # Animação de afundar só ocorre se o botão ainda não foi respondido (marcado como certo ou errado)
+        if is_hovered and self.cor_atual == COR_BOTAO:
+            cor = COR_BOTAO_HOVER
+            self.rect.y = self.rect_original.y + 3
+        else:
+            cor = self.cor_atual
+            self.rect.y = self.rect_original.y
 
+        # 1. Sombra do Botão
+        sombra_rect = pygame.Rect(self.rect_original.x, self.rect_original.y + 5, self.rect_original.width, self.rect_original.height)
+        pygame.draw.rect(surface, COR_SOMBRA, sombra_rect, border_radius=12)
+
+        # 2. Botão Principal
+        pygame.draw.rect(surface, cor, self.rect, border_radius=12)
+        
+        # 3. Borda Interna para dar acabamento
+        pygame.draw.rect(surface, (255, 255, 255), self.rect, width=1, border_radius=12)
+
+        # 4. Conteúdo (Imagem e Texto)
         if self.imagem:
             surface.blit(self.imagem, (self.rect.x + 8, self.rect.y + 7))
             txt   = fonte.render(self.texto, True, (255, 255, 255))
@@ -76,18 +101,19 @@ class BotaoOpcao:
         surface.blit(txt, trect)
 
     def verificar_clique(self, evento):
+        # A hitbox considera o rect_original para evitar que o botão fuja do mouse
         return (evento.type == pygame.MOUSEBUTTONDOWN and
                 evento.button == 1 and
-                self.rect.collidepoint(evento.pos))
+                self.rect_original.collidepoint(evento.pos))
 
     def marcar_certo(self):
-        self.cor_atual = self.COR_CERTO
+        self.cor_atual = COR_CERTO
 
     def marcar_errado(self):
-        self.cor_atual = self.COR_ERRADO
+        self.cor_atual = COR_ERRADO
 
     def resetar_cor(self):
-        self.cor_atual = self.COR_BOTAO
+        self.cor_atual = COR_BOTAO
 
 
 # ============================================================
@@ -96,12 +122,6 @@ class BotaoOpcao:
 
 class JogoQuiz:
     LARGURA, ALTURA = 800, 600
-    COR_FUNDO   = (244, 241, 222)
-    COR_TEXTO   = (61, 64, 91)
-    COR_BOTAO   = (129, 178, 154)
-    COR_BORDA   = (190, 200, 175)
-    COR_CERTO   = (82, 183, 136)
-    COR_ERRADO  = (224, 122, 95)
     TEMPO_MAX   = 15.0
     POSICOES    = [(80, 400), (420, 400), (80, 490), (420, 490)]
 
@@ -109,9 +129,11 @@ class JogoQuiz:
         self.tela   = tela
         self.relogio = pygame.time.Clock()
 
-        self.fonte_titulo   = pygame.font.SysFont("arial", 48, bold=True)
-        self.fonte_pergunta = pygame.font.SysFont("arial", 24, bold=True)
-        self.fonte_botao    = pygame.font.SysFont("arial", 20)
+        # Fontes padronizadas com o projeto
+        self.fonte_titulo   = pygame.font.SysFont("cambria", 48, bold=True)
+        self.fonte_pergunta = pygame.font.SysFont("segoe ui", 24, bold=True)
+        self.fonte_botao    = pygame.font.SysFont("segoe ui", 20, bold=True)
+        self.fonte_subtit   = pygame.font.SysFont("calibri", 24, italic=True)
 
         self._resetar()
 
@@ -124,7 +146,7 @@ class JogoQuiz:
         self.estado_resposta_mascote = None
         self.botoes_opcoes          = []
         self.perguntas_selecionadas = []
-        self.tempo_espera           = 0  # Cronômetro para não usar o time.sleep()
+        self.tempo_espera           = 0
 
     def _criar_botoes(self):
         self.botoes_opcoes = []
@@ -162,9 +184,8 @@ class JogoQuiz:
                 if b.texto == resposta_correta:
                     b.marcar_certo()
 
-        # Ao invés de dormir o código, mudamos o estado. Isso trava os cliques naturalmente!
         self.estado = "ESPERANDO_RESPOSTA"
-        self.tempo_espera = 1.5  # 1.5 segundos de espera
+        self.tempo_espera = 1.5 
 
     def processar_eventos(self):
         for evento in pygame.event.get():
@@ -180,7 +201,6 @@ class JogoQuiz:
                     self._iniciar_jogo()
 
             elif self.estado == "JOGANDO":
-                # Como o clique só funciona no estado "JOGANDO", o estado de espera fica blindado
                 for btn in self.botoes_opcoes:
                     if btn.verificar_clique(evento):
                         self._responder(btn)
@@ -193,7 +213,6 @@ class JogoQuiz:
         return True
 
     def atualizar(self, dt):
-        # 1. Se estiver esperando o feedback do acerto/erro acabar
         if self.estado == "ESPERANDO_RESPOSTA":
             self.tempo_espera -= dt / 1000
             if self.tempo_espera <= 0:
@@ -205,12 +224,11 @@ class JogoQuiz:
                     self.estado = "RESULTADO"
                 elif self.indice_pergunta < len(self.perguntas_selecionadas):
                     self._criar_botoes()
-                    self.estado = "JOGANDO"  # Volta para o jogo normal
+                    self.estado = "JOGANDO"
                 else:
                     self.estado = "RESULTADO"
-            return  # Retorna para não decrementar o tempo da pergunta
+            return 
 
-        # 2. Se estiver no jogo rolando normal
         if self.estado != "JOGANDO":
             return
 
@@ -225,31 +243,35 @@ class JogoQuiz:
                 self._criar_botoes()
 
     def desenhar(self):
-        self.tela.fill(self.COR_FUNDO)
-        pygame.draw.rect(self.tela, self.COR_BORDA, (15, 15, self.LARGURA-30, self.ALTURA-30), 4, border_radius=20)
+        self.tela.fill(COR_FUNDO)
+        
+        # Moldura externa idêntica ao Proteja a Planta
+        pygame.draw.rect(
+            self.tela, COR_BORDA_MOLDURA,
+            (20, 20, self.LARGURA - 40, self.ALTURA - 40), 3, border_radius=25
+        )
 
         if self.estado == "MENU":
-            titulo = self.fonte_titulo.render("Quiz Botanico", True, self.COR_TEXTO)
-            sub    = self.fonte_pergunta.render("Clique para comecar | ESC para voltar", True, self.COR_BOTAO)
+            titulo = self.fonte_titulo.render("Quiz Botânico", True, COR_TEXTO)
+            sub    = self.fonte_subtit.render("Clique para começar | ESC para voltar", True, COR_SUBTITULO)
             desenhar_mascote(self.tela, self.LARGURA//2, 220)
             self.tela.blit(titulo, (self.LARGURA//2 - titulo.get_width()//2, 120))
             self.tela.blit(sub,    (self.LARGURA//2 - sub.get_width()//2,    320))
 
-        # Agora desenha os componentes gráficos tanto no jogo rolando quanto na tela de espera!
         elif self.estado in ["JOGANDO", "ESPERANDO_RESPOSTA"]:
-            prog   = self.fonte_botao.render(f"Pergunta {self.indice_pergunta + 1} de {len(self.perguntas_selecionadas)}", True, self.COR_TEXTO)
-            pontos = self.fonte_botao.render(f"Pontos: {self.pontos}", True, self.COR_TEXTO)
-            self.tela.blit(prog, (30, 30))
-            self.tela.blit(pontos, (self.LARGURA - 140, 30))
+            prog   = self.fonte_botao.render(f"Pergunta {self.indice_pergunta + 1} de {len(self.perguntas_selecionadas)}", True, COR_TEXTO)
+            pontos = self.fonte_botao.render(f"Pontos: {self.pontos}", True, COR_TEXTO)
+            self.tela.blit(prog, (40, 40))
+            self.tela.blit(pontos, (self.LARGURA - 140, 40))
 
             for i in range(self.vidas):
-                desenhar_folha(self.tela, 40 + (i * 25), 70, self.COR_CERTO)
+                desenhar_folha(self.tela, 50 + (i * 25), 80, COR_CERTO)
 
             barra_max  = 300
             barra_atual = barra_max * (max(0, self.tempo_atual) / self.TEMPO_MAX)
             x_barra    = self.LARGURA//2 - barra_max//2
-            pygame.draw.rect(self.tela, (210, 210, 200), (x_barra, 35, barra_max, 12), border_radius=6)
-            pygame.draw.rect(self.tela, self.COR_BOTAO,  (x_barra, 35, barra_atual, 12), border_radius=6)
+            pygame.draw.rect(self.tela, COR_BORDA_MOLDURA, (x_barra, 45, barra_max, 12), border_radius=6)
+            pygame.draw.rect(self.tela, COR_BOTAO,  (x_barra, 45, barra_atual, 12), border_radius=6)
 
             desenhar_mascote(self.tela, self.LARGURA//2, 170, self.estado_resposta_mascote)
 
@@ -260,8 +282,8 @@ class JogoQuiz:
                 if len(linha1) < 45: linha1 += palavra + " "
                 else: linha2 += palavra + " "
 
-            l1 = self.fonte_pergunta.render(linha1.strip(), True, self.COR_TEXTO)
-            l2 = self.fonte_pergunta.render(linha2.strip(), True, self.COR_TEXTO)
+            l1 = self.fonte_pergunta.render(linha1.strip(), True, COR_TEXTO)
+            l2 = self.fonte_pergunta.render(linha2.strip(), True, COR_TEXTO)
             self.tela.blit(l1, (self.LARGURA//2 - l1.get_width()//2, 290))
             self.tela.blit(l2, (self.LARGURA//2 - l2.get_width()//2, 330))
 
@@ -270,15 +292,15 @@ class JogoQuiz:
 
         elif self.estado == "RESULTADO":
             if self.vidas <= 0:
-                titulo = self.fonte_titulo.render("Game Over!", True, self.COR_ERRADO)
-                resultado = self.fonte_pergunta.render(f"Voce perdeu suas vidas. Acertou {self.pontos}!", True, self.COR_TEXTO)
+                titulo = self.fonte_titulo.render("Game Over!", True, COR_ERRADO)
+                resultado = self.fonte_pergunta.render(f"Você perdeu suas vidas. Acertou {self.pontos}!", True, COR_TEXTO)
             else:
-                titulo = self.fonte_titulo.render("Fim do Quiz!", True, self.COR_TEXTO)
-                resultado = self.fonte_titulo.render(f"Voce acertou {self.pontos} de {len(self.perguntas_selecionadas)}!", True, self.COR_CERTO)
+                titulo = self.fonte_titulo.render("Fim do Quiz!", True, COR_TEXTO)
+                resultado = self.fonte_titulo.render(f"Você acertou {self.pontos} de {len(self.perguntas_selecionadas)}!", True, COR_CERTO)
 
-            reiniciar = self.fonte_pergunta.render("Clique para voltar ao menu.", True, self.COR_BOTAO)
-            self.tela.blit(titulo, (self.LARGURA//2 - titulo.get_width()//2, 150))
-            self.tela.blit(resultado, (self.LARGURA//2 - resultado.get_width()//2, 250))
+            reiniciar = self.fonte_subtit.render("Clique para tentar de novo.", True, COR_SUBTITULO)
+            self.tela.blit(titulo, (self.LARGURA//2 - titulo.get_width()//2, 180))
+            self.tela.blit(resultado, (self.LARGURA//2 - resultado.get_width()//2, 280))
             self.tela.blit(reiniciar, (self.LARGURA//2 - reiniciar.get_width()//2, 400))
 
     def executar(self):
@@ -300,6 +322,6 @@ def rodar_quiz(tela):
 if __name__ == "__main__":
     pygame.init()
     tela = pygame.display.set_mode((800, 600))
-    pygame.display.set_caption("Quiz Botanico PLINFO")
+    pygame.display.set_caption("Quiz Botânico PLINFO")
     rodar_quiz(tela)
     pygame.quit()

@@ -8,21 +8,40 @@ pygame.init()
 
 class Botao:
     def __init__(self, x, y, largura, altura, texto):
+        self.rect_original = pygame.Rect(x, y, largura, altura)
+        # Criamos um rect dinâmico para o efeito de "afundar" ao passar o mouse
         self.rect = pygame.Rect(x, y, largura, altura)
         self.texto = texto
 
-    def desenhar(self, tela, fonte, cor, hover):
+    def desenhar(self, tela, fonte, cor_base, cor_hover, cor_sombra):
         mouse = pygame.mouse.get_pos()
-        cor_atual = hover if self.rect.collidepoint(mouse) else cor
+        
+        # Se o mouse estiver em cima, o botão muda de cor e "desce" 3 pixels
+        if self.rect_original.collidepoint(mouse):
+            cor_atual = cor_hover
+            self.rect.y = self.rect_original.y + 3
+        else:
+            cor_atual = cor_base
+            self.rect.y = self.rect_original.y
 
-        pygame.draw.rect(tela, cor_atual, self.rect, border_radius=12)
+        # 1. Desenha a Sombra do Botão (simula efeito 3D)
+        sombra_rect = pygame.Rect(self.rect_original.x, self.rect_original.y + 5, self.rect_original.width, self.rect_original.height)
+        pygame.draw.rect(tela, cor_sombra, sombra_rect, border_radius=14)
 
-        texto = fonte.render(self.texto, True, (255,255,255))
-        tela.blit(texto, texto.get_rect(center=self.rect.center))
+        # 2. Desenha o Botão Principal por cima
+        pygame.draw.rect(tela, cor_atual, self.rect, border_radius=14)
+        
+        # 3. Borda interna sutil para dar acabamento
+        pygame.draw.rect(tela, (255, 255, 255), self.rect, width=1, border_radius=14)
+
+        # 4. Desenha o Texto
+        texto_surface = fonte.render(self.texto, True, (255, 255, 255))
+        tela.blit(texto_surface, texto_surface.get_rect(center=self.rect.center))
 
     def clicou(self, evento):
+        # Usamos o rect_original para garantir que o clique registre mesmo se o botão se mover no hover
         if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
-            return self.rect.collidepoint(evento.pos)
+            return self.rect_original.collidepoint(evento.pos)
         return False
 
 class MenuJogos:
@@ -30,18 +49,22 @@ class MenuJogos:
         self.LARGURA = 800
         self.ALTURA = 600
 
-        self.tela = pygame.display.set_mode((self.LARGURA,self.ALTURA))
+        self.tela = pygame.display.set_mode((self.LARGURA, self.ALTURA))
         pygame.display.set_caption("Jogos Botanicos - PLINFO")
 
-        self.COR_FUNDO = (244,241,222)
-        self.COR_TEXTO = (61,64,91)
-        self.COR_BOTAO = (129,178,154)
-        self.COR_HOVER = (156,197,178)
-        self.COR_BORDA = (190,200,175)
+        # --- NOVA PALETA DE CORES (Mais viva e contrastante) ---
+        self.COR_FUNDO = (240, 242, 235)       # Bege claro bem natural
+        self.COR_TEXTO = (44, 53, 57)          # Cinza escuro/Verde musgo profundo para leitura clara
+        self.COR_SUBTITULO = (76, 133, 119)    # Verde intermediário elegante
+        self.COR_BOTAO = (67, 143, 114)        # Verde folha mais vivo e nítido
+        self.COR_HOVER = (82, 171, 137)        # Verde brilhante para o feedback visual
+        self.COR_SOMBRA = (41, 92, 73)         # Tom escuro para profundidade dos botões
+        self.COR_BORDA_MOLDURA = (210, 218, 201) # Borda do menu suave
 
-        self.fonte_titulo = pygame.font.SysFont("arial",48,bold=True)
-        self.fonte_subtitulo = pygame.font.SysFont("arial",24)
-        self.fonte_botao = pygame.font.SysFont("arial",22,bold=True)
+        # Tentando carregar fontes do sistema que costumam ser mais bonitas (alternativas para Arial)
+        self.fonte_titulo = pygame.font.SysFont("cambria", 54, bold=True)
+        self.fonte_subtitulo = pygame.font.SysFont("calibri", 24, italic=True)
+        self.fonte_botao = pygame.font.SysFont("segoe ui", 22, bold=True)
 
         self.criar_botoes()
 
@@ -49,10 +72,15 @@ class MenuJogos:
         self.relogio = pygame.time.Clock()
 
     def criar_botoes(self):
-        self.btn_quiz = Botao(250,180,300,70,"Quiz Botanico")
-        self.btn_memoria = Botao(250,270,300,70,"Jogo da Memoria")
-        self.btn_proteger = Botao(250,360,300,70,"Proteja a Planta")
-        self.btn_zombie = Botao(250,450,300,70,"Defenda a Torre")
+        # Centralizando horizontalmente perfeitamente dinâmico (Largura 320 para mais espaço interno)
+        largura_btn = 320
+        altura_btn = 65
+        x_centralizado = (self.LARGURA // 2) - (largura_btn // 2)
+        
+        self.btn_quiz = Botao(x_centralizado, 200, largura_btn, altura_btn, "Quiz Botânico")
+        self.btn_memoria = Botao(x_centralizado, 290, largura_btn, altura_btn, "Jogo da Memória")
+        self.btn_proteger = Botao(x_centralizado, 380, largura_btn, altura_btn, "Proteja a Planta")
+        self.btn_zombie = Botao(x_centralizado, 470, largura_btn, altura_btn, "Defenda a Torre")
 
         self.botoes = [
             self.btn_quiz,
@@ -63,56 +91,57 @@ class MenuJogos:
 
     def eventos(self):
         for evento in pygame.event.get():
-
             if evento.type == pygame.QUIT:
                 self.rodando = False
 
             if self.btn_quiz.clicou(evento):
                 rodar_quiz(self.tela)
-
             elif self.btn_memoria.clicou(evento):
                 rodar_memoria(self.tela)
-
             elif self.btn_proteger.clicou(evento):
                 rodar_proteja_planta(self.tela)
-
             elif self.btn_zombie.clicou(evento):
                 rodar_pvz(self.tela)
 
     def desenhar(self):
         self.tela.fill(self.COR_FUNDO)
+        
+        # Moldura externa elegante
         pygame.draw.rect(
             self.tela,
-            self.COR_BORDA,
-            (15,15,self.LARGURA-30,self.ALTURA-30),
-            4,
-            border_radius=20
+            self.COR_BORDA_MOLDURA,
+            (20, 20, self.LARGURA - 40, self.ALTURA - 40),
+            3,
+            border_radius=25
         )
-        titulo = self.fonte_titulo.render(
-            "PLINFO Games",
-            True,
-            self.COR_TEXTO
-        )
-        subtitulo = self.fonte_subtitulo.render(
-            "Escolha um jogo para jogar!",
-            True,
-            self.COR_BOTAO
-        )
-        self.tela.blit(
-            titulo,
-            (self.LARGURA//2-titulo.get_width()//2,80)
-        )
+        
+        # Renderizando Textos
+        titulo_sombra = self.fonte_titulo.render("PLINFO Games", True, (200, 205, 195))
+        titulo = self.fonte_titulo.render("PLINFO Games", True, self.COR_TEXTO)
+        subtitulo = self.fonte_subtitulo.render("Escolha um jogo para jogar!", True, self.COR_SUBTITULO)
+        
+        # Posições dos textos
+        x_titulo = self.LARGURA // 2 - titulo.get_width() // 2
+        
+        # Desenha sombra do título levemente deslocada e depois o principal por cima
+        self.tela.blit(titulo_sombra, (x_titulo + 3, 73))
+        self.tela.blit(titulo, (x_titulo, 70))
+        
         self.tela.blit(
             subtitulo,
-            (self.LARGURA//2-subtitulo.get_width()//2,140)
+            (self.LARGURA // 2 - subtitulo.get_width() // 2, 140)
         )
+        
+        # Desenha os botões modificados
         for botao in self.botoes:
             botao.desenhar(
                 self.tela,
                 self.fonte_botao,
                 self.COR_BOTAO,
-                self.COR_HOVER
+                self.COR_HOVER,
+                self.COR_SOMBRA
             )
+
     def rodar(self):
         while self.rodando:
             self.eventos()
