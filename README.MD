@@ -223,4 +223,4 @@ Atenção: não execute o jogo de dentro da pasta `jogo_planta.py`, pois os cami
 ## Autoria
 
 - Renato Rodrigues Barbosa Filho
-- Pedro Albuquerque de Coutinho
+- Pedro Henrique Albuquerque Coutinho
