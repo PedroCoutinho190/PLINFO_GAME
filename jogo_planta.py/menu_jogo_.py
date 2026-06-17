@@ -7,13 +7,41 @@ from jogo_defesa import rodar_proteja_planta
 pygame.init()
 
 class Botao:
+    """
+    Botão genérico com efeito visual 3D usado no menu principal.
+
+    Ao passar o mouse por cima, o botão muda de cor e desce 3 pixels,
+    simulando um clique. A hitbox usa sempre a posição original para
+    não escapar do cursor durante a animação.
+    """
+
     def __init__(self, x, y, largura, altura, texto):
+        """
+        Cria o botão.
+
+        Args:
+            x (int): Posição horizontal.
+            y (int): Posição vertical.
+            largura (int): Largura em pixels.
+            altura (int): Altura em pixels.
+            texto (str): Texto exibido no centro do botão.
+        """
         self.rect_original = pygame.Rect(x, y, largura, altura)
         # Criamos um rect dinâmico para o efeito de "afundar" ao passar o mouse
         self.rect = pygame.Rect(x, y, largura, altura)
         self.texto = texto
 
     def desenhar(self, tela, fonte, cor_base, cor_hover, cor_sombra):
+        """
+        Desenha o botão na tela com efeito de hover e sombra 3D.
+
+        Args:
+            tela (pygame.Surface): Superfície onde o botão será desenhado.
+            fonte (pygame.font.Font): Fonte usada para renderizar o texto.
+            cor_base (tuple): Cor RGB padrão do botão.
+            cor_hover (tuple): Cor RGB quando o mouse está em cima.
+            cor_sombra (tuple): Cor RGB da sombra (efeito 3D).
+        """
         mouse = pygame.mouse.get_pos()
         
         # Se o mouse estiver em cima, o botão muda de cor e "desce" 3 pixels
@@ -39,13 +67,36 @@ class Botao:
         tela.blit(texto_surface, texto_surface.get_rect(center=self.rect.center))
 
     def clicou(self, evento):
+        """
+        Verifica se o botão foi clicado com o botão esquerdo do mouse.
+
+        Usa a posição original do botão como hitbox para garantir que
+        o clique seja detectado mesmo durante a animação de afundar.
+
+        Args:
+            evento (pygame.event.Event): Evento do pygame a ser verificado.
+
+        Returns:
+            bool: True se o botão foi clicado, False caso contrário.
+        """
         # Usamos o rect_original para garantir que o clique registre mesmo se o botão se mover no hover
         if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
             return self.rect_original.collidepoint(evento.pos)
         return False
 
 class MenuJogos:
+    """
+    Menu principal do PLINFO Games.
+
+    Inicializa a janela do pygame, define a paleta de cores e as fontes
+    do projeto, e exibe quatro botões que direcionam para cada minigame.
+    """
+
     def __init__(self):
+        """
+        Configura a janela (800x600), carrega fontes do sistema e
+        chama criar_botoes() para posicioná-los na tela.
+        """
         self.LARGURA = 800
         self.ALTURA = 600
 
@@ -72,6 +123,12 @@ class MenuJogos:
         self.relogio = pygame.time.Clock()
 
     def criar_botoes(self):
+        """
+        Instancia os quatro botões do menu e os agrupa em uma lista.
+
+        Os botões são centralizados horizontalmente com base na largura
+        da janela. A lista self.botoes facilita o loop de desenho.
+        """
         # Centralizando horizontalmente perfeitamente dinâmico (Largura 320 para mais espaço interno)
         largura_btn = 320
         altura_btn = 65
@@ -90,6 +147,13 @@ class MenuJogos:
         ]
 
     def eventos(self):
+        """
+        Processa os eventos do pygame a cada frame.
+
+        Verifica o clique em cada botão e chama a função de entrada
+        do jogo correspondente. O jogo roda de forma bloqueante: o
+        menu fica pausado até que o jogador pressione ESC e volte.
+        """
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
                 self.rodando = False
@@ -104,6 +168,10 @@ class MenuJogos:
                 rodar_pvz(self.tela)
 
     def desenhar(self):
+        """
+        Renderiza o fundo, a moldura, o título com sombra, o subtítulo
+        e todos os botões do menu.
+        """
         self.tela.fill(self.COR_FUNDO)
         
         # Moldura externa elegante
@@ -143,6 +211,10 @@ class MenuJogos:
             )
 
     def rodar(self):
+        """
+        Loop principal do menu. Processa eventos, desenha a tela e
+        limita a taxa de quadros a 60 FPS até o jogador fechar a janela.
+        """
         while self.rodando:
             self.eventos()
             self.desenhar()

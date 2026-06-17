@@ -18,11 +18,36 @@ COR_ERRADO        = (200, 80, 80)
 # FUNÇÕES DE DESENHO TEMÁTICO
 
 def desenhar_folha(surface, x, y, cor):
+    """
+    Desenha uma folha estilizada (losango) em uma posição da tela.
+
+    Usada para representar as vidas restantes do jogador durante o quiz.
+
+    Args:
+        surface (pygame.Surface): Onde a folha será desenhada.
+        x (int): Centro horizontal da folha.
+        y (int): Centro vertical da folha.
+        cor (tuple): Cor RGB da folha.
+    """
     pontos = [(x, y - 10), (x + 8, y), (x, y + 10), (x - 8, y)]
     pygame.draw.polygon(surface, cor, pontos)
 
 
 def desenhar_mascote(surface, x, y, estado_resposta=None):
+    """
+    Desenha o mascote do quiz: um vaso de planta com expressão facial.
+
+    A expressão muda conforme o resultado da última resposta:
+    - None ou True → olhos normais e sorriso (neutro/acerto).
+    - False → olhos em X e sem sorriso (erro).
+
+    Args:
+        surface (pygame.Surface): Onde o mascote será desenhado.
+        x (int): Centro horizontal do mascote.
+        y (int): Centro vertical do mascote.
+        estado_resposta (bool | None): True = acertou, False = errou,
+            None = aguardando resposta.
+    """
     COR_MADEIRA = (182, 143, 105) # Tom ligeiramente ajustado
     
     pygame.draw.polygon(surface, COR_MADEIRA,
@@ -48,7 +73,27 @@ def desenhar_mascote(surface, x, y, estado_resposta=None):
 # CLASSE BOTAO COM EFEITO 3D
 
 class BotaoOpcao:
+    """
+    Botão de opção do quiz com suporte a imagem, efeito 3D e feedback visual.
+
+    Pode ser marcado como certo (verde) ou errado (vermelho) após o jogador
+    responder, e volta à cor padrão quando a próxima pergunta começa.
+    A animação de afundar é desativada assim que o botão recebe uma marcação.
+    """
+
     def __init__(self, x, y, largura, altura, texto, imagem_path=None):
+        """
+        Cria o botão de opção.
+
+        Args:
+            x (int): Posição horizontal.
+            y (int): Posição vertical.
+            largura (int): Largura em pixels.
+            altura (int): Altura em pixels.
+            texto (str): Texto da opção de resposta.
+            imagem_path (str | None): Caminho para a imagem da opção.
+                Se fornecido, a imagem aparece à esquerda do texto.
+        """
         self.rect_original = pygame.Rect(x, y, largura, altura)
         self.rect          = pygame.Rect(x, y, largura, altura)
         self.texto         = texto
@@ -63,6 +108,16 @@ class BotaoOpcao:
                 self.imagem = None
 
     def desenhar(self, surface, fonte):
+        """
+        Renderiza o botão com sombra, borda e conteúdo (imagem + texto).
+
+        A animação de afundar só acontece enquanto o botão está na cor
+        padrão (ainda não respondido).
+
+        Args:
+            surface (pygame.Surface): Onde o botão será desenhado.
+            fonte (pygame.font.Font): Fonte para o texto da opção.
+        """
         pos_mouse = pygame.mouse.get_pos()
         is_hovered = self.rect_original.collidepoint(pos_mouse)
         
@@ -95,29 +150,64 @@ class BotaoOpcao:
         surface.blit(txt, trect)
 
     def verificar_clique(self, evento):
+        """
+        Verifica se o botão foi clicado com o botão esquerdo do mouse.
+
+        A hitbox é sempre baseada em rect_original para não escapar do
+        cursor durante a animação de afundar.
+
+        Args:
+            evento (pygame.event.Event): Evento a ser verificado.
+
+        Returns:
+            bool: True se clicado, False caso contrário.
+        """
         # A hitbox considera o rect_original para evitar que o botão fuja do mouse
         return (evento.type == pygame.MOUSEBUTTONDOWN and
                 evento.button == 1 and
                 self.rect_original.collidepoint(evento.pos))
 
     def marcar_certo(self):
+        """Pinta o botão de verde para indicar resposta correta."""
         self.cor_atual = COR_CERTO
 
     def marcar_errado(self):
+        """Pinta o botão de vermelho para indicar resposta errada."""
         self.cor_atual = COR_ERRADO
 
     def resetar_cor(self):
+        """Volta o botão à cor padrão (verde neutro)."""
         self.cor_atual = COR_BOTAO
 
 
 # CLASSE PRINCIPAL DO QUIZ
 
 class JogoQuiz:
+    """
+    Gerenciador do Quiz Botânico.
+
+    Controla o fluxo completo: menu de entrada → perguntas com timer →
+    feedback visual → tela de resultado. Usa 15 perguntas aleatórias do
+    banco em perguntas_quiz.py, com 3 vidas e 15 segundos por pergunta.
+
+    Estados possíveis de self.estado:
+        - "MENU": tela inicial, aguardando clique para começar.
+        - "JOGANDO": pergunta ativa com contagem regressiva.
+        - "ESPERANDO_RESPOSTA": pausado 1,5 s para mostrar o feedback.
+        - "RESULTADO": exibe pontuação final e opção de reiniciar.
+    """
+
     LARGURA, ALTURA = 800, 600
     TEMPO_MAX   = 15.0
     POSICOES    = [(80, 400), (420, 400), (80, 490), (420, 490)]
 
     def __init__(self, tela):
+        """
+        Inicializa o quiz com a tela recebida e carrega as fontes.
+
+        Args:
+            tela (pygame.Surface): Superfície do pygame onde o jogo é renderizado.
+        """
         self.tela   = tela
         self.relogio = pygame.time.Clock()
 
@@ -130,6 +220,11 @@ class JogoQuiz:
         self._resetar()
 
     def _resetar(self):
+        """
+        Volta todos os atributos de partida ao estado inicial (menu).
+
+        Chamado na criação do objeto e ao voltar ao menu após uma partida.
+        """
         self.estado                 = "MENU"
         self.indice_pergunta        = 0
         self.pontos                 = 0
@@ -141,6 +236,12 @@ class JogoQuiz:
         self.tempo_espera           = 0
 
     def _criar_botoes(self):
+        """
+        Cria os quatro BotaoOpcao para a pergunta atual.
+
+        Lê as opções e os caminhos de imagem da pergunta corrente e
+        posiciona os botões nas coordenadas definidas em POSICOES.
+        """
         self.botoes_opcoes = []
         p    = self.perguntas_selecionadas[self.indice_pergunta]
         opcoes = p["opcoes"]
@@ -150,6 +251,10 @@ class JogoQuiz:
             self.botoes_opcoes.append(BotaoOpcao(x, y, 300, 72, opcoes[i], imgs[i]))
 
     def _iniciar_jogo(self):
+        """
+        Inicia uma nova partida: embaralha até 15 perguntas, zera contadores
+        e muda o estado para "JOGANDO".
+        """
         self.indice_pergunta        = 0
         self.pontos                 = 0
         self.vidas                  = 3
@@ -162,6 +267,20 @@ class JogoQuiz:
         self._criar_botoes()
 
     def _responder(self, btn):
+        """
+        Processa a resposta do jogador ao clicar em um BotaoOpcao.
+
+        - Resposta certa: marca o botão de verde, incrementa pontos e
+          sorri o mascote.
+        - Resposta errada: marca o botão de vermelho, decrementa vidas,
+          revela a opção correta em verde e faz o mascote franzir.
+
+        Em ambos os casos, muda o estado para "ESPERANDO_RESPOSTA" e
+        inicia um timer de 1,5 s antes de avançar.
+
+        Args:
+            btn (BotaoOpcao): Botão que o jogador clicou.
+        """
         resposta_correta = self.perguntas_selecionadas[self.indice_pergunta]["resposta"]
 
         if btn.texto == resposta_correta:
@@ -180,6 +299,19 @@ class JogoQuiz:
         self.tempo_espera = 1.5 
 
     def processar_eventos(self):
+        """
+        Lê e trata todos os eventos do pygame no frame atual.
+
+        - QUIT → fecha o jogo.
+        - ESC → retorna ao menu (retorna False).
+        - Clique no menu → inicia partida.
+        - Clique em botão durante "JOGANDO" → chama _responder().
+        - Clique em "RESULTADO" → volta ao menu.
+
+        Returns:
+            bool: False se o jogador pressionou ESC (sinal para sair do quiz),
+                True em todos os outros casos.
+        """
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
                 pygame.quit()
@@ -205,6 +337,18 @@ class JogoQuiz:
         return True
 
     def atualizar(self, dt):
+        """
+        Atualiza a lógica do jogo a cada frame.
+
+        Durante "ESPERANDO_RESPOSTA": decrementa o timer de pausa e,
+        ao expirar, avança para a próxima pergunta ou vai para "RESULTADO".
+
+        Durante "JOGANDO": decrementa o timer da pergunta. Se o tempo
+        acabar, desconta uma vida e avança (ou encerra se acabaram as vidas).
+
+        Args:
+            dt (int): Tempo em milissegundos desde o último frame (retorno de Clock.tick).
+        """
         if self.estado == "ESPERANDO_RESPOSTA":
             self.tempo_espera -= dt / 1000
             if self.tempo_espera <= 0:
@@ -235,6 +379,14 @@ class JogoQuiz:
                 self._criar_botoes()
 
     def desenhar(self):
+        """
+        Renderiza a tela completa de acordo com o estado atual.
+
+        - "MENU": título, mascote e instrução de início.
+        - "JOGANDO" / "ESPERANDO_RESPOSTA": cabeçalho com progresso,
+          vidas (folhas), barra de tempo, mascote, pergunta e botões.
+        - "RESULTADO": título de vitória ou game over e pontuação final.
+        """
         self.tela.fill(COR_FUNDO)
         
         # Moldura externa idêntica ao Proteja a Planta
@@ -296,6 +448,12 @@ class JogoQuiz:
             self.tela.blit(reiniciar, (self.LARGURA//2 - reiniciar.get_width()//2, 400))
 
     def executar(self):
+        """
+        Loop principal do quiz. Roda a 60 FPS até o jogador pressionar ESC.
+
+        Ao sair, chama _resetar() para limpar o estado antes de devolver
+        o controle ao menu.
+        """
         while True:
             dt = self.relogio.tick(60)
             if not self.processar_eventos():
@@ -307,6 +465,14 @@ class JogoQuiz:
 
 
 def rodar_quiz(tela):
+    """
+    Ponto de entrada do Quiz Botânico chamado pelo menu principal.
+
+    Cria uma instância de JogoQuiz e inicia o loop.
+
+    Args:
+        tela (pygame.Surface): Superfície compartilhada com o menu.
+    """
     jogo = JogoQuiz(tela)
     jogo.executar()
 

@@ -15,7 +15,16 @@ COR_PRAGA         = (200, 80, 80)
 
 class Planta:
     """Representa a planta central que precisa ser defendida."""
+
     def __init__(self, x, y, imagem):
+        """
+        Cria a planta defensável.
+
+        Args:
+            x (int): Centro horizontal da planta na tela.
+            y (int): Centro vertical da planta na tela.
+            imagem (pygame.Surface): Imagem carregada da planta escolhida.
+        """
         self.x = x
         self.y = y
         self.raio = 45
@@ -24,14 +33,32 @@ class Planta:
         self.imagem = imagem
 
     def sofrer_dano(self, dano):
+        """
+        Reduz a vida da planta, nunca abaixo de zero.
+
+        Args:
+            dano (int): Quantidade de pontos de vida a subtrair.
+        """
         self.vida -= dano
         if self.vida < 0:
             self.vida = 0
 
     def esta_viva(self):
+        """
+        Verifica se a planta ainda tem vida.
+
+        Returns:
+            bool: True se vida > 0.
+        """
         return self.vida > 0
 
     def desenhar(self, tela):
+        """
+        Desenha a imagem da planta e um círculo indicando sua hitbox.
+
+        Args:
+            tela (pygame.Surface): Onde a planta será renderizada.
+        """
         diametro = int(self.raio * 2)
         img_jogo = pygame.transform.scale(self.imagem, (diametro, diametro))
         tela.blit(img_jogo, (self.x - self.raio, self.y - self.raio))
@@ -39,6 +66,14 @@ class Planta:
         pygame.draw.circle(tela, COR_BORDA_MOLDURA, (self.x, self.y), self.raio, 2)
 
     def desenhar_barra_vida(self, tela):
+        """
+        Desenha a barra de vida abaixo da planta.
+
+        A cor muda de verde para vermelho quando a vida cai abaixo de 35%.
+
+        Args:
+            tela (pygame.Surface): Onde a barra será desenhada.
+        """
         largura_barra = 160
         bx = self.x - largura_barra // 2
         by = self.y + self.raio + 20
@@ -54,7 +89,24 @@ class Planta:
 
 class Praga:
     """Representa o inimigo (ácaro) que ataca a planta."""
+
     def __init__(self, largura_tela, altura_tela, alvo_x, alvo_y, numero_spawn, img_original):
+        """
+        Cria uma praga que nasce em uma borda aleatória e segue em
+        direção à planta.
+
+        A velocidade aumenta progressivamente com o número de pragas
+        já eliminadas (numero_spawn).
+
+        Args:
+            largura_tela (int): Largura da janela em pixels.
+            altura_tela (int): Altura da janela em pixels.
+            alvo_x (int): Coordenada X da planta (destino).
+            alvo_y (int): Coordenada Y da planta (destino).
+            numero_spawn (int): Quantas pragas já foram eliminadas; afeta a velocidade.
+            img_original (pygame.Surface | None): Imagem do ácaro. Se None,
+                um círculo vermelho é usado como fallback.
+        """
         self.raio = random.randint(16, 24)
         self.img_original = img_original
         
@@ -77,18 +129,44 @@ class Praga:
         self.vy = (dy / dist_centro) * velocidade_base
 
     def atualizar(self):
+        """Move a praga em direção à planta com base no vetor calculado no __init__."""
         self.x += self.vx
         self.y += self.vy
 
     def colide_com_mouse(self, pos_mouse):
+        """
+        Verifica se o cursor do mouse está sobre a praga (clique para eliminar).
+
+        Args:
+            pos_mouse (tuple): Coordenadas (x, y) do mouse.
+
+        Returns:
+            bool: True se o cursor está dentro da área da praga.
+        """
         dist = math.hypot(self.x - pos_mouse[0], self.y - pos_mouse[1])
         return dist <= self.raio + 10
 
     def colide_com_planta(self, planta):
+        """
+        Verifica se a praga chegou até a planta.
+
+        Args:
+            planta (Planta): A planta central a ser protegida.
+
+        Returns:
+            bool: True se a praga tocou a planta.
+        """
         dist_planta = math.hypot(self.x - planta.x, self.y - planta.y)
         return dist_planta <= (planta.raio + self.raio)
 
     def desenhar(self, tela):
+        """
+        Desenha a praga na tela. Usa a imagem se disponível,
+        caso contrário desenha um círculo vermelho.
+
+        Args:
+            tela (pygame.Surface): Onde a praga será desenhada.
+        """
         if self.img_original:
             diametro = int(self.raio * 2)
             img_escalada = pygame.transform.scale(self.img_original, (diametro, diametro))
@@ -99,7 +177,16 @@ class Praga:
 
 class OpcaoSelecao:
     """Representa um item selecionável na tela de menu inicial (Modificado para Botão 3D)."""
+
     def __init__(self, nome, arquivo_img, rect):
+        """
+        Cria uma opção de planta para seleção.
+
+        Args:
+            nome (str): Nome da planta exibido na parte inferior do botão.
+            arquivo_img (str): Caminho para a imagem da planta.
+            rect (pygame.Rect): Área e posição do botão.
+        """
         self.nome = nome
         self.rect_original = rect
         # Rect dinâmico para o efeito de "afundar"
@@ -112,6 +199,14 @@ class OpcaoSelecao:
             self.img.fill((200, 200, 200))
 
     def desenhar(self, tela, pos_mouse, fonte_pequena):
+        """
+        Desenha o botão com imagem da planta, efeito 3D e nome.
+
+        Args:
+            tela (pygame.Surface): Onde o botão será desenhado.
+            pos_mouse (tuple): Posição atual do mouse para o efeito hover.
+            fonte_pequena (pygame.font.Font): Fonte para o nome da planta.
+        """
         # Efeito hover: afunda 3 pixels
         if self.rect_original.collidepoint(pos_mouse):
             cor_atual = COR_BOTAO_HOVER
@@ -139,6 +234,15 @@ class OpcaoSelecao:
         tela.blit(txt_nome, (self.rect.centerx - txt_nome.get_width()//2, self.rect.bottom - 25))
 
     def clicou(self, evento):
+        """
+        Verifica se o botão foi clicado com o botão esquerdo do mouse.
+
+        Args:
+            evento (pygame.event.Event): Evento a ser verificado.
+
+        Returns:
+            bool: True se clicado, False caso contrário.
+        """
         # Valida o clique baseado na posição original
         if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
             return self.rect_original.collidepoint(evento.pos)
@@ -147,7 +251,14 @@ class OpcaoSelecao:
 
 class JogoProtejaPlanta:
     """Gerenciador Principal do Minigame."""
+
     def __init__(self, tela):
+        """
+        Inicializa fontes, carrega imagens e prepara o estado inicial.
+
+        Args:
+            tela (pygame.Surface): Superfície compartilhada com o menu.
+        """
         self.tela = tela
         self.LARGURA, self.ALTURA = tela.get_size()
         
@@ -165,6 +276,11 @@ class JogoProtejaPlanta:
         self.resetar_partida()
 
     def carregar_recursos(self):
+        """
+        Carrega as imagens das plantas e do ácaro e cria os botões de seleção.
+
+        Se uma imagem não for encontrada, um quadrado cinza é usado como fallback.
+        """
         # Opções de plantas
         dados_plantas = [
             {"nome": "Babosa", "arquivo": "imagens/babosa.jpg"},
@@ -192,6 +308,11 @@ class JogoProtejaPlanta:
             self.img_praga = None
 
     def resetar_partida(self):
+        """
+        Zera os atributos de partida sem alterar as imagens já carregadas.
+
+        Chamado no início e ao reiniciar após game over.
+        """
         self.planta = None
         self.pragas = []
         self.tempo_spawn = 0
@@ -200,6 +321,19 @@ class JogoProtejaPlanta:
         self.total_pragas_spawnadas = 0
 
     def processar_eventos(self):
+        """
+        Lê e trata todos os eventos do pygame no frame atual.
+
+        - QUIT → fecha o jogo.
+        - ESC → retorna ao menu (retorna False).
+        - Clique em planta (SELECAO) → instancia a Planta e inicia partida.
+        - Clique em praga (JOGANDO) → remove a praga e incrementa o score;
+          acelera a frequência de spawn até o limite mínimo.
+        - Clique (GAME_OVER) → reinicia a partida e volta à seleção.
+
+        Returns:
+            bool: False para sinalizar saída ao menu, True para continuar.
+        """
         pos_mouse = pygame.mouse.get_pos()
         
         for evento in pygame.event.get():
@@ -237,6 +371,16 @@ class JogoProtejaPlanta:
         return True # Continua no minigame
 
     def atualizar_jogando(self):
+        """
+        Atualiza a lógica do jogo durante o estado "JOGANDO".
+
+        A cada frame:
+        - Incrementa o contador de spawn e cria uma nova praga quando
+          atingir a frequência atual.
+        - Move todas as pragas em direção à planta.
+        - Se uma praga colidir com a planta, aplica 10 de dano e a remove.
+          Se a planta morrer, muda o estado para "GAME_OVER".
+        """
         # Spawna novas pragas
         self.tempo_spawn += 1
         if self.tempo_spawn >= self.frequencia_spawn:
@@ -258,6 +402,13 @@ class JogoProtejaPlanta:
                     self.estado_jogo = "GAME_OVER"
 
     def desenhar_tela(self):
+        """
+        Renderiza a tela completa conforme o estado atual.
+
+        - "SELECAO": título, subtítulo e botões de plantas.
+        - "JOGANDO": planta, pragas, barra de vida e placar.
+        - "GAME_OVER": mensagem de derrota e instruções para reiniciar.
+        """
         self.tela.fill(COR_FUNDO)
         
         # Moldura externa idêntica ao menu
@@ -312,6 +463,11 @@ class JogoProtejaPlanta:
         pygame.display.flip()
 
     def executar(self):
+        """
+        Loop principal do minigame. Roda a 60 FPS até o jogador pressionar ESC.
+
+        Atualiza a lógica de jogo somente durante o estado "JOGANDO".
+        """
         rodando = True
         while rodando:
             rodando = self.processar_eventos()
@@ -328,7 +484,9 @@ def rodar_proteja_planta(tela):
     """
     Função de ponte para o menu principal. 
     Chama a versão Orientada a Objetos sem quebrar o resto do seu projeto.
+
+    Args:
+        tela (pygame.Surface): Superfície compartilhada com o menu.
     """
     jogo = JogoProtejaPlanta(tela)
     jogo.executar()
-
