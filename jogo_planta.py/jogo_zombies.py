@@ -2,9 +2,7 @@ import pygame
 import random
 import os
 
-# ============================================================
 # PALETA DE CORES GLOBAL PADRONIZADA
-# ============================================================
 COR_FUNDO         = (0, 0, 0) # Fundo preto solicitado
 COR_TEXTO         = (44, 53, 57)
 COR_SUBTITULO     = (76, 133, 119)
@@ -25,9 +23,7 @@ def load_image(path, size, fallback_color):
         return surf
 
 
-# ============================================================
 # CLASSES DE ENTIDADES
-# ============================================================
 
 class Planta:
     def __init__(self, x, y, tipo, assets):
@@ -133,9 +129,7 @@ class Projétil:
         pygame.draw.circle(surface, (0, 0, 0), (int(self.x + 7), int(self.y + 7)), 8, 2)
 
 
-# ============================================================
 # CLASSE PRINCIPAL DO JOGO
-# ============================================================
 
 class JogoZombies:
     ROWS, COLS    = 5, 9

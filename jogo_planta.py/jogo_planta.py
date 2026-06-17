@@ -3,9 +3,7 @@ import time
 import random
 from perguntas_quiz import perguntas
 
-# ============================================================
 # PALETA DE CORES GLOBAL PADRONIZADA
-# ============================================================
 COR_FUNDO         = (240, 242, 235)
 COR_TEXTO         = (44, 53, 57)
 COR_SUBTITULO     = (76, 133, 119)
@@ -17,9 +15,7 @@ COR_CERTO         = (82, 183, 136)
 COR_ERRADO        = (200, 80, 80)
 
 
-# ============================================================
 # FUNÇÕES DE DESENHO TEMÁTICO
-# ============================================================
 
 def desenhar_folha(surface, x, y, cor):
     pontos = [(x, y - 10), (x + 8, y), (x, y + 10), (x - 8, y)]
@@ -49,9 +45,7 @@ def desenhar_mascote(surface, x, y, estado_resposta=None):
         pygame.draw.line(surface, (0,0,0), (x+12, y-8), (x+4,  y),   3)
 
 
-# ============================================================
 # CLASSE BOTAO COM EFEITO 3D
-# ============================================================
 
 class BotaoOpcao:
     def __init__(self, x, y, largura, altura, texto, imagem_path=None):
@@ -116,9 +110,7 @@ class BotaoOpcao:
         self.cor_atual = COR_BOTAO
 
 
-# ============================================================
 # CLASSE PRINCIPAL DO QUIZ
-# ============================================================
 
 class JogoQuiz:
     LARGURA, ALTURA = 800, 600
