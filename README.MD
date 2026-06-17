@@ -204,7 +204,7 @@ Atenção: não execute o jogo de dentro da pasta `jogo_planta.py`, pois os cami
 
 ### Menu do Proteja a Planta
 
-![Proteja a Planta](imagens/docs/quizz.png)
+![Proteja a Planta](imagens/docs/proteja_planta.png)
 
 - Escolha uma planta.
 - Clique nas pragas para eliminá-las antes que alcancem a planta.
