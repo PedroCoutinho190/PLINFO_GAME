@@ -98,9 +98,9 @@ class JogoMemoria:
             BotaoNivel(250, 140, 300, 60, "Facil - 4 pares"),
             BotaoNivel(250, 220, 300, 60, "Medio - 6 pares"),
             BotaoNivel(250, 300, 300, 60, "Dificil - 8 pares"),
-            BotaoNivel(250, 380, 300, 60, "Impossivel - 16 pares"),
+            BotaoNivel(250, 380, 300, 60, "Impossivel - 15 pares"),
         ]
-        self.pares_por_nivel = [4, 6, 8, 16]
+        self.pares_por_nivel = [4, 6, 8, 15]
 
         self.num_pares     = None
         self.cartas        = []

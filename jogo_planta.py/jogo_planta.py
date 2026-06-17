@@ -106,7 +106,7 @@ class JogoQuiz:
     POSICOES    = [(80, 400), (420, 400), (80, 490), (420, 490)]
 
     def __init__(self, tela):
-        self.tela    = tela
+        self.tela   = tela
         self.relogio = pygame.time.Clock()
 
         self.fonte_titulo   = pygame.font.SysFont("arial", 48, bold=True)
@@ -116,18 +116,19 @@ class JogoQuiz:
         self._resetar()
 
     def _resetar(self):
-        self.estado                  = "MENU"
-        self.indice_pergunta         = 0
-        self.pontos                  = 0
-        self.vidas                   = 3
-        self.tempo_atual             = self.TEMPO_MAX
+        self.estado                 = "MENU"
+        self.indice_pergunta        = 0
+        self.pontos                 = 0
+        self.vidas                  = 3
+        self.tempo_atual            = self.TEMPO_MAX
         self.estado_resposta_mascote = None
-        self.botoes_opcoes           = []
-        self.perguntas_selecionadas  = []
+        self.botoes_opcoes          = []
+        self.perguntas_selecionadas = []
+        self.tempo_espera           = 0  # Cronômetro para não usar o time.sleep()
 
     def _criar_botoes(self):
         self.botoes_opcoes = []
-        p      = self.perguntas_selecionadas[self.indice_pergunta]
+        p    = self.perguntas_selecionadas[self.indice_pergunta]
         opcoes = p["opcoes"]
         imgs   = p.get("imagens_opcoes", [None] * 4)
         for i in range(4):
@@ -135,14 +136,15 @@ class JogoQuiz:
             self.botoes_opcoes.append(BotaoOpcao(x, y, 300, 72, opcoes[i], imgs[i]))
 
     def _iniciar_jogo(self):
-        self.indice_pergunta         = 0
-        self.pontos                  = 0
-        self.vidas                   = 3
-        self.tempo_atual             = self.TEMPO_MAX
+        self.indice_pergunta        = 0
+        self.pontos                 = 0
+        self.vidas                  = 3
+        self.tempo_atual            = self.TEMPO_MAX
         self.estado_resposta_mascote = None
+        self.tempo_espera           = 0
         qtd = min(15, len(perguntas))
-        self.perguntas_selecionadas  = random.sample(perguntas, qtd)
-        self.estado                  = "JOGANDO"
+        self.perguntas_selecionadas = random.sample(perguntas, qtd)
+        self.estado                 = "JOGANDO"
         self._criar_botoes()
 
     def _responder(self, btn):
@@ -160,26 +162,9 @@ class JogoQuiz:
                 if b.texto == resposta_correta:
                     b.marcar_certo()
 
-        # Mostra resultado por 1.5 segundos
-        self.tela.fill(self.COR_FUNDO)
-        pygame.draw.rect(self.tela, self.COR_BORDA,
-                         (15, 15, self.LARGURA-30, self.ALTURA-30), 4, border_radius=20)
-        desenhar_mascote(self.tela, self.LARGURA//2, 170, self.estado_resposta_mascote)
-        for b in self.botoes_opcoes:
-            b.desenhar(self.tela, self.fonte_botao)
-        pygame.display.flip()
-        time.sleep(1.5)
-
-        self.indice_pergunta        += 1
-        self.tempo_atual             = self.TEMPO_MAX
-        self.estado_resposta_mascote = None
-
-        if self.vidas <= 0:
-            self.estado = "RESULTADO"
-        elif self.indice_pergunta < len(self.perguntas_selecionadas):
-            self._criar_botoes()
-        else:
-            self.estado = "RESULTADO"
+        # Ao invés de dormir o código, mudamos o estado. Isso trava os cliques naturalmente!
+        self.estado = "ESPERANDO_RESPOSTA"
+        self.tempo_espera = 1.5  # 1.5 segundos de espera
 
     def processar_eventos(self):
         for evento in pygame.event.get():
@@ -195,6 +180,7 @@ class JogoQuiz:
                     self._iniciar_jogo()
 
             elif self.estado == "JOGANDO":
+                # Como o clique só funciona no estado "JOGANDO", o estado de espera fica blindado
                 for btn in self.botoes_opcoes:
                     if btn.verificar_clique(evento):
                         self._responder(btn)
@@ -207,14 +193,32 @@ class JogoQuiz:
         return True
 
     def atualizar(self, dt):
+        # 1. Se estiver esperando o feedback do acerto/erro acabar
+        if self.estado == "ESPERANDO_RESPOSTA":
+            self.tempo_espera -= dt / 1000
+            if self.tempo_espera <= 0:
+                self.indice_pergunta += 1
+                self.tempo_atual = self.TEMPO_MAX
+                self.estado_resposta_mascote = None
+                
+                if self.vidas <= 0:
+                    self.estado = "RESULTADO"
+                elif self.indice_pergunta < len(self.perguntas_selecionadas):
+                    self._criar_botoes()
+                    self.estado = "JOGANDO"  # Volta para o jogo normal
+                else:
+                    self.estado = "RESULTADO"
+            return  # Retorna para não decrementar o tempo da pergunta
+
+        # 2. Se estiver no jogo rolando normal
         if self.estado != "JOGANDO":
             return
 
         self.tempo_atual -= dt / 1000
         if self.tempo_atual <= 0:
-            self.vidas           -= 1
+            self.vidas -= 1
             self.indice_pergunta += 1
-            self.tempo_atual      = self.TEMPO_MAX
+            self.tempo_atual = self.TEMPO_MAX
             if self.vidas <= 0 or self.indice_pergunta >= len(self.perguntas_selecionadas):
                 self.estado = "RESULTADO"
             else:
@@ -222,8 +226,7 @@ class JogoQuiz:
 
     def desenhar(self):
         self.tela.fill(self.COR_FUNDO)
-        pygame.draw.rect(self.tela, self.COR_BORDA,
-                         (15, 15, self.LARGURA-30, self.ALTURA-30), 4, border_radius=20)
+        pygame.draw.rect(self.tela, self.COR_BORDA, (15, 15, self.LARGURA-30, self.ALTURA-30), 4, border_radius=20)
 
         if self.estado == "MENU":
             titulo = self.fonte_titulo.render("Quiz Botanico", True, self.COR_TEXTO)
@@ -232,38 +235,30 @@ class JogoQuiz:
             self.tela.blit(titulo, (self.LARGURA//2 - titulo.get_width()//2, 120))
             self.tela.blit(sub,    (self.LARGURA//2 - sub.get_width()//2,    320))
 
-        elif self.estado == "JOGANDO":
-            # Progresso e pontos
-            prog   = self.fonte_botao.render(
-                f"Pergunta {self.indice_pergunta + 1} de {len(self.perguntas_selecionadas)}",
-                True, self.COR_TEXTO)
+        # Agora desenha os componentes gráficos tanto no jogo rolando quanto na tela de espera!
+        elif self.estado in ["JOGANDO", "ESPERANDO_RESPOSTA"]:
+            prog   = self.fonte_botao.render(f"Pergunta {self.indice_pergunta + 1} de {len(self.perguntas_selecionadas)}", True, self.COR_TEXTO)
             pontos = self.fonte_botao.render(f"Pontos: {self.pontos}", True, self.COR_TEXTO)
-            self.tela.blit(prog,   (30, 30))
+            self.tela.blit(prog, (30, 30))
             self.tela.blit(pontos, (self.LARGURA - 140, 30))
 
-            # Vidas (folhas)
             for i in range(self.vidas):
                 desenhar_folha(self.tela, 40 + (i * 25), 70, self.COR_CERTO)
 
-            # Barra de tempo
             barra_max  = 300
             barra_atual = barra_max * (max(0, self.tempo_atual) / self.TEMPO_MAX)
             x_barra    = self.LARGURA//2 - barra_max//2
-            pygame.draw.rect(self.tela, (210, 210, 200), (x_barra, 35, barra_max,   12), border_radius=6)
+            pygame.draw.rect(self.tela, (210, 210, 200), (x_barra, 35, barra_max, 12), border_radius=6)
             pygame.draw.rect(self.tela, self.COR_BOTAO,  (x_barra, 35, barra_atual, 12), border_radius=6)
 
-            # Mascote
             desenhar_mascote(self.tela, self.LARGURA//2, 170, self.estado_resposta_mascote)
 
-            # Pergunta
             pergunta_atual = self.perguntas_selecionadas[self.indice_pergunta]["pergunta"]
             palavras = pergunta_atual.split(" ")
             linha1, linha2 = "", ""
             for palavra in palavras:
-                if len(linha1) < 45:
-                    linha1 += palavra + " "
-                else:
-                    linha2 += palavra + " "
+                if len(linha1) < 45: linha1 += palavra + " "
+                else: linha2 += palavra + " "
 
             l1 = self.fonte_pergunta.render(linha1.strip(), True, self.COR_TEXTO)
             l2 = self.fonte_pergunta.render(linha2.strip(), True, self.COR_TEXTO)
@@ -275,17 +270,14 @@ class JogoQuiz:
 
         elif self.estado == "RESULTADO":
             if self.vidas <= 0:
-                titulo    = self.fonte_titulo.render("Game Over!", True, self.COR_ERRADO)
-                resultado = self.fonte_pergunta.render(
-                    f"Voce perdeu suas vidas. Acertou {self.pontos}!", True, self.COR_TEXTO)
+                titulo = self.fonte_titulo.render("Game Over!", True, self.COR_ERRADO)
+                resultado = self.fonte_pergunta.render(f"Voce perdeu suas vidas. Acertou {self.pontos}!", True, self.COR_TEXTO)
             else:
-                titulo    = self.fonte_titulo.render("Fim do Quiz!", True, self.COR_TEXTO)
-                resultado = self.fonte_titulo.render(
-                    f"Voce acertou {self.pontos} de {len(self.perguntas_selecionadas)}!",
-                    True, self.COR_CERTO)
+                titulo = self.fonte_titulo.render("Fim do Quiz!", True, self.COR_TEXTO)
+                resultado = self.fonte_titulo.render(f"Voce acertou {self.pontos} de {len(self.perguntas_selecionadas)}!", True, self.COR_CERTO)
 
             reiniciar = self.fonte_pergunta.render("Clique para voltar ao menu.", True, self.COR_BOTAO)
-            self.tela.blit(titulo,    (self.LARGURA//2 - titulo.get_width()//2,    150))
+            self.tela.blit(titulo, (self.LARGURA//2 - titulo.get_width()//2, 150))
             self.tela.blit(resultado, (self.LARGURA//2 - resultado.get_width()//2, 250))
             self.tela.blit(reiniciar, (self.LARGURA//2 - reiniciar.get_width()//2, 400))
 
