@@ -80,7 +80,7 @@ class MenuJogos:
         self.btn_quiz = Botao(x_centralizado, 200, largura_btn, altura_btn, "Quiz Botânico")
         self.btn_memoria = Botao(x_centralizado, 290, largura_btn, altura_btn, "Jogo da Memória")
         self.btn_proteger = Botao(x_centralizado, 380, largura_btn, altura_btn, "Proteja a Planta")
-        self.btn_zombie = Botao(x_centralizado, 470, largura_btn, altura_btn, "Defenda a Torre")
+        self.btn_zombie = Botao(x_centralizado, 470, largura_btn, altura_btn, "Plants vs Plugs")
 
         self.botoes = [
             self.btn_quiz,
