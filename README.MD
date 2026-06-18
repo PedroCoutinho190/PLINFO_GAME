@@ -225,7 +225,7 @@ Atenção: não execute o jogo de dentro da pasta `jogo_planta.py`, pois os cami
 - Renato Rodrigues:
 https://docs.google.com/document/d/1rAh447dGLOKt7nrgF9CXkrA-DALi1fet/edit?usp=sharing&ouid=107511788663849416411&rtpof=true&sd=true
 - Pedro Coutinho:
-https://docs.google.com/document/d/111I9dfSoukLCYHPUFWV-c_HcnFUWahboFLBR7d6MHE0/edit?tab=t.0
+https://docs.google.com/document/d/111I9dfSoukLCYHPUFWV-c_HcnFUWahboFLBR7d6MHE0/edit?usp=sharing
 
 ## Autoria
 
