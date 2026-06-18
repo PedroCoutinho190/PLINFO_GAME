@@ -66,7 +66,7 @@ Principais características:
 - aumento progressivo de dificuldade;
 - tela de fim de jogo.
 
-### 4. Defenda a Torre
+### 4. Plants vs Plugs
 
 Arquivo principal: `jogo_planta.py/jogo_zombies.py`
 
