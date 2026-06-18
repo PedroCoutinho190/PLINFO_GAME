@@ -4,7 +4,27 @@ import time
 
 
 class Carta:
+    """
+    Representa uma carta no Jogo da Memória.
+
+    Cada carta tem três estados visuais:
+    - Fechada: mostra o verso verde com "?".
+    - Virada: mostra a imagem da planta com fundo branco.
+    - Encontrada: imagem com fundo verde destacado, permanece visível.
+    """
+
     def __init__(self, x, y, w, h, imagem, path):
+        """
+        Cria uma carta.
+
+        Args:
+            x (int): Posição horizontal.
+            y (int): Posição vertical.
+            w (int): Largura em pixels.
+            h (int): Altura em pixels.
+            imagem (pygame.Surface): Imagem da planta já escalada.
+            path (str): Caminho do arquivo de imagem, usado para comparar pares.
+        """
         self.rect       = pygame.Rect(x, y, w, h)
         self.w          = w
         self.h          = h
@@ -14,6 +34,16 @@ class Carta:
         self.encontrada = False
 
     def desenhar(self, surface, fonte, cor_back, cor_borda, cor_acertou):
+        """
+        Renderiza a carta conforme seu estado atual.
+
+        Args:
+            surface (pygame.Surface): Onde a carta será desenhada.
+            fonte (pygame.font.Font): Fonte para o "?" do verso.
+            cor_back (tuple): Cor RGB do verso da carta (fechada).
+            cor_borda (tuple): Cor RGB da borda quando virada.
+            cor_acertou (tuple): Cor RGB do fundo quando encontrada.
+        """
         x, y = self.rect.x, self.rect.y
         if self.encontrada:
             pygame.draw.rect(surface, cor_acertou, self.rect, border_radius=12)
@@ -31,17 +61,53 @@ class Carta:
                                y + self.h//2 - txt.get_height()//2))
 
     def clicado(self, pos):
+        """
+        Verifica se a posição do mouse está dentro da carta.
+
+        Args:
+            pos (tuple): Coordenadas (x, y) do mouse.
+
+        Returns:
+            bool: True se o clique está sobre a carta.
+        """
         return self.rect.collidepoint(pos)
 
 
 class BotaoNivel:
+    """
+    Botão de seleção de dificuldade na tela inicial do Jogo da Memória.
+
+    Apresenta efeito 3D idêntico ao dos demais botões do projeto:
+    sombra fixa + corpo que desce 3 px no hover.
+    """
+
     def __init__(self, x, y, largura, altura, texto):
+        """
+        Cria o botão de nível.
+
+        Args:
+            x (int): Posição horizontal.
+            y (int): Posição vertical.
+            largura (int): Largura em pixels.
+            altura (int): Altura em pixels.
+            texto (str): Rótulo exibido (ex: "Fácil - 4 pares").
+        """
         self.rect_original = pygame.Rect(x, y, largura, altura)
         # Rect dinâmico para o efeito de "afundar"
         self.rect = pygame.Rect(x, y, largura, altura)
         self.texto = texto
 
     def desenhar(self, tela, fonte, cor_base, cor_hover, cor_sombra):
+        """
+        Desenha o botão com sombra, corpo e texto centralizado.
+
+        Args:
+            tela (pygame.Surface): Onde o botão será desenhado.
+            fonte (pygame.font.Font): Fonte para o texto.
+            cor_base (tuple): Cor RGB padrão.
+            cor_hover (tuple): Cor RGB no hover.
+            cor_sombra (tuple): Cor RGB da sombra.
+        """
         mouse = pygame.mouse.get_pos()
         
         # Efeito hover: afunda 3 pixels
@@ -67,12 +133,33 @@ class BotaoNivel:
         tela.blit(texto_surface, texto_surface.get_rect(center=self.rect.center))
 
     def clicou(self, evento):
+        """
+        Verifica se o botão foi clicado com o botão esquerdo do mouse.
+
+        Args:
+            evento (pygame.event.Event): Evento a ser verificado.
+
+        Returns:
+            bool: True se clicado, False caso contrário.
+        """
         if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
             return self.rect_original.collidepoint(evento.pos)
         return False
 
 
 class JogoMemoria:
+    """
+    Gerenciador do Jogo da Memória Botânica.
+
+    O jogador escolhe um nível de dificuldade (4, 6, 8 ou 15 pares) e
+    deve encontrar todos os pares de cartas clicando nelas duas a duas.
+    Quando dois pares são diferentes, as cartas viram de volta após 1 s.
+
+    Estados possíveis de self.estado:
+        - "SELECAO": tela de escolha de dificuldade.
+        - "JOGANDO": partida em andamento.
+        - "VITORIA": todos os pares foram encontrados.
+    """
 
     IMAGENS = [
         "imagens/alecrim.png",
@@ -105,6 +192,12 @@ class JogoMemoria:
     COR_BORDA_MOLDURA = (210, 218, 201)  # Borda suave
 
     def __init__(self, tela):
+        """
+        Inicializa fontes, botões de nível e atributos de partida.
+
+        Args:
+            tela (pygame.Surface): Superfície compartilhada com o menu.
+        """
         self.tela    = tela
         self.LARGURA, self.ALTURA = tela.get_size()
         self.relogio = pygame.time.Clock()
@@ -139,6 +232,13 @@ class JogoMemoria:
         self.estado         = "SELECAO"
 
     def _carregar_cartas(self):
+        """
+        Cria e embaralha as cartas para a partida atual.
+
+        Seleciona aleatoriamente num_pares imagens do catálogo, duplica
+        a lista para formar os pares, embaralha e calcula o tamanho e
+        espaçamento das cartas para caber na tela sem vazar.
+        """
         num = self.num_pares
         
         # Ajuste dinâmico de tamanhos para evitar que vazem a tela
@@ -180,6 +280,10 @@ class JogoMemoria:
             self.cartas.append(Carta(x, y, carta_w, carta_h, img, path))
 
     def _resetar(self):
+        """
+        Volta o jogo para a tela de seleção de nível, zerando todos os
+        atributos de partida.
+        """
         self.selecionadas   = []
         self.tentativas     = 0
         self.pares_achados  = 0
@@ -190,6 +294,19 @@ class JogoMemoria:
         self.estado         = "SELECAO"
 
     def processar_eventos(self):
+        """
+        Lê e trata todos os eventos do pygame no frame atual.
+
+        - QUIT → fecha o jogo.
+        - ESC → retorna ao menu (retorna False).
+        - Clique em botão de nível → carrega cartas e inicia partida.
+        - Clique em carta (quando não bloqueado) → vira a carta; se
+          duas estiverem selecionadas, verifica se formam par.
+        - Clique na tela de vitória → retorna ao menu (retorna False).
+
+        Returns:
+            bool: False para sinalizar saída ao menu, True para continuar.
+        """
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
                 pygame.quit()
@@ -233,6 +350,14 @@ class JogoMemoria:
         return True
 
     def atualizar(self):
+        """
+        Atualiza a lógica do jogo a cada frame.
+
+        Se o jogo está bloqueado (duas cartas erradas viradas) e já
+        passou 1 segundo, fecha as cartas e libera novos cliques.
+
+        Verifica se todos os pares foram encontrados para mudar para "VITORIA".
+        """
         if self.bloqueado and time.time() - self.tempo_bloqueio > 1.0:
             for carta in self.selecionadas:
                 carta.virada = False
@@ -243,6 +368,13 @@ class JogoMemoria:
             self.estado = "VITORIA"
 
     def desenhar(self):
+        """
+        Renderiza a tela conforme o estado atual.
+
+        - "SELECAO": título, subtítulo e botões de nível.
+        - "JOGANDO": cabeçalho com progresso e tentativas, e grade de cartas.
+        - "VITORIA": sobrepõe caixa de parabéns com número de tentativas.
+        """
         self.tela.fill(self.COR_FUNDO)
         
         # Moldura externa elegante (Igual ao menu)
@@ -293,6 +425,12 @@ class JogoMemoria:
                 self.tela.blit(v3, (self.LARGURA//2 - v3.get_width()//2, 345))
 
     def executar(self):
+        """
+        Loop principal do jogo. Roda a 60 FPS até o jogador pressionar
+        ESC ou clicar após vencer.
+
+        Ao sair, chama _resetar() antes de devolver o controle ao menu.
+        """
         while True:
             if not self.processar_eventos():
                 self._resetar()
@@ -304,5 +442,11 @@ class JogoMemoria:
 
 
 def rodar_memoria(tela):
+    """
+    Ponto de entrada do Jogo da Memória chamado pelo menu principal.
+
+    Args:
+        tela (pygame.Surface): Superfície compartilhada com o menu.
+    """
     jogo = JogoMemoria(tela)
     jogo.executar()

@@ -2,9 +2,7 @@ import pygame
 import random
 import os
 
-# ============================================================
 # PALETA DE CORES GLOBAL PADRONIZADA
-# ============================================================
 COR_FUNDO         = (0, 0, 0) # Fundo preto solicitado
 COR_TEXTO         = (44, 53, 57)
 COR_SUBTITULO     = (76, 133, 119)
@@ -16,6 +14,20 @@ COR_PAINEL        = (225, 232, 215)
 
 
 def load_image(path, size, fallback_color):
+    """
+    Carrega e redimensiona uma imagem da pasta "imagens/".
+
+    Se o arquivo não for encontrado, retorna uma superfície colorida
+    com as dimensões informadas como fallback.
+
+    Args:
+        path (str): Nome do arquivo dentro da pasta "imagens/".
+        size (tuple): Tamanho desejado (largura, altura) em pixels.
+        fallback_color (tuple): Cor RGB usada se a imagem não existir.
+
+    Returns:
+        pygame.Surface: Imagem carregada e redimensionada, ou fallback colorido.
+    """
     try:
         img = pygame.image.load(os.path.join("imagens", path)).convert_alpha()
         return pygame.transform.scale(img, size)
@@ -25,12 +37,28 @@ def load_image(path, size, fallback_color):
         return surf
 
 
-# ============================================================
 # CLASSES DE ENTIDADES
-# ============================================================
 
 class Planta:
+    """
+    Planta defensiva que o jogador posiciona no grid.
+
+    Existem três tipos com comportamentos distintos:
+    - camomila: gera energia ($20) a cada ciclo de sol.
+    - babosa: atira projéteis em inimigos na mesma linha.
+    - espada: escudo com alta vida que bloqueia o avanço dos inimigos.
+    """
+
     def __init__(self, x, y, tipo, assets):
+        """
+        Cria a planta no grid.
+
+        Args:
+            x (int): Posição horizontal em pixels (canto superior esquerdo).
+            y (int): Posição vertical em pixels (canto superior esquerdo).
+            tipo (str): "camomila", "babosa" ou "espada".
+            assets (dict): Dicionário com as superfícies pré-carregadas de cada tipo.
+        """
         self.x      = x
         self.y      = y
         self.tipo   = tipo
@@ -50,6 +78,16 @@ class Planta:
         self.image = assets[tipo]
 
     def desenhar(self, surface, font_mini):
+        """
+        Desenha a planta com sua imagem, sombra elíptica e ícone de tipo.
+
+        O ícone varia por tipo: moeda dourada (camomila), círculo verde (babosa)
+        e triângulo azul (espada).
+
+        Args:
+            surface (pygame.Surface): Onde a planta será desenhada.
+            font_mini (pygame.font.Font): Fonte pequena para o símbolo "$" da camomila.
+        """
         surface.blit(self.image, (self.x, self.y))
 
         sombra = pygame.Surface((60, 20), pygame.SRCALPHA)
@@ -74,7 +112,25 @@ class Planta:
 
 
 class Praga:
+    """
+    Inimigo padrão que avança pela linha em direção ao lado esquerdo do grid.
+
+    A velocidade e o HP aumentam a cada onda, tornando o jogo progressivamente
+    mais difícil.
+    """
+
     def __init__(self, lane, img, onda, grid_offset_y, cell_size, width):
+        """
+        Cria uma praga na borda direita da tela, na linha especificada.
+
+        Args:
+            lane (int): Índice da linha do grid (0 a ROWS-1).
+            img (pygame.Surface): Imagem da praga.
+            onda (int): Número da onda atual (afeta velocidade e HP).
+            grid_offset_y (int): Deslocamento Y do grid em pixels.
+            cell_size (int): Altura de cada célula do grid em pixels.
+            width (int): Largura da tela (posição inicial X da praga).
+        """
         self.x     = width
         self.y     = grid_offset_y + lane * cell_size + 10
         self.speed = 0.4 + (onda * 0.08)
@@ -84,15 +140,38 @@ class Praga:
         self.img   = img
 
     def atualizar(self):
+        """Move a praga para a esquerda e atualiza o retângulo de colisão."""
         self.x     -= self.speed
         self.rect.x = self.x
 
     def desenhar(self, surface):
+        """
+        Desenha a praga na posição atual.
+
+        Args:
+            surface (pygame.Surface): Onde a praga será desenhada.
+        """
         surface.blit(self.img, (self.x, self.y))
 
 
 class Boss:
+    """
+    Inimigo especial que aparece na última onda com 1000 de HP e barra de vida visível.
+
+    Mais lento que as pragas comuns, mas muito mais resistente.
+    """
+
     def __init__(self, lane, img, grid_offset_y, cell_size, width):
+        """
+        Cria o boss na borda direita da tela.
+
+        Args:
+            lane (int): Índice da linha do grid.
+            img (pygame.Surface): Imagem do boss.
+            grid_offset_y (int): Deslocamento Y do grid em pixels.
+            cell_size (int): Altura de cada célula do grid em pixels.
+            width (int): Largura da tela (posição inicial X do boss).
+        """
         self.x      = width
         self.y      = grid_offset_y + lane * cell_size - 10
         self.speed  = 0.3
@@ -103,10 +182,18 @@ class Boss:
         self.img    = img
 
     def atualizar(self):
+        """Move o boss para a esquerda e atualiza o retângulo de colisão."""
         self.x     -= self.speed
         self.rect.x = self.x
 
     def desenhar(self, surface, font_small):
+        """
+        Desenha o boss com sua imagem, barra de vida e rótulo "BOSS".
+
+        Args:
+            surface (pygame.Surface): Onde o boss será desenhado.
+            font_small (pygame.font.Font): Fonte para o rótulo "BOSS".
+        """
         surface.blit(self.img, (self.x, self.y))
         barra_w = 90
         vida_w  = int(barra_w * self.hp / self.hp_max)
@@ -117,7 +204,21 @@ class Boss:
 
 
 class Projétil:
+    """
+    Projétil disparado pela planta babosa contra inimigos na mesma linha.
+
+    Se mover para a direita e causa 20 de dano ao primeiro inimigo que acertar.
+    """
+
     def __init__(self, x, y, lane):
+        """
+        Cria o projétil na posição da babosa que o disparou.
+
+        Args:
+            x (int): Posição horizontal de origem.
+            y (int): Posição vertical de origem.
+            lane (int): Linha do grid em que o projétil viaja.
+        """
         self.x     = x
         self.y     = y
         self.speed = 5
@@ -125,19 +226,42 @@ class Projétil:
         self.rect  = pygame.Rect(x, y, 15, 15)
 
     def atualizar(self):
+        """Move o projétil para a direita e atualiza o retângulo de colisão."""
         self.x     += self.speed
         self.rect.x = self.x
 
     def desenhar(self, surface):
+        """
+        Desenha o projétil como um círculo verde com borda escura.
+
+        Args:
+            surface (pygame.Surface): Onde o projétil será desenhado.
+        """
         pygame.draw.circle(surface, COR_CERTO, (int(self.x + 7), int(self.y + 7)), 8)
         pygame.draw.circle(surface, (0, 0, 0), (int(self.x + 7), int(self.y + 7)), 8, 2)
 
 
-# ============================================================
 # CLASSE PRINCIPAL DO JOGO
-# ============================================================
 
 class JogoZombies:
+    """
+    Gerenciador do minigame de defesa estilo Plants vs. Zombies.
+
+    O jogador posiciona plantas em um grid 5×9 para impedir que as pragas
+    cheguem ao lado esquerdo. Existem 5 ondas; a última traz um boss.
+
+    Tipos de plantas disponíveis:
+        - camomila ($50): gera $20 de energia a cada ciclo.
+        - babosa ($100): atira projéteis nos inimigos da mesma linha.
+        - espada ($50): escudo com 300 de HP.
+        - pá: remove uma planta já posicionada (sem custo).
+
+    Estados possíveis de self.estado:
+        - "PLAYING": partida em andamento.
+        - "GAME_OVER": uma praga atravessou o grid.
+        - "VICTORY": boss derrotado, jogador venceu.
+    """
+
     ROWS, COLS    = 5, 9
     CELL_SIZE     = 80
     GRID_OFFSET_X = 40
@@ -146,6 +270,13 @@ class JogoZombies:
     MAX_ONDAS     = 5
 
     def __init__(self, tela):
+        """
+        Inicializa fontes, carrega imagens de pragas e plantas,
+        e chama _resetar() para começar do zero.
+
+        Args:
+            tela (pygame.Surface): Superfície compartilhada com o menu.
+        """
         self.tela    = tela
         self.relogio = pygame.time.Clock()
 
@@ -171,6 +302,11 @@ class JogoZombies:
         self._resetar()
 
     def _resetar(self):
+        """
+        Zera todas as listas e contadores para uma nova partida.
+
+        Chamado no __init__ e ao pressionar R após game over ou vitória.
+        """
         self.plantas          = []
         self.pragas           = []
         self.projeteis        = []
@@ -184,6 +320,12 @@ class JogoZombies:
         self.estado           = "PLAYING"
 
     def _spawnar_praga(self):
+        """
+        Cria uma nova praga em uma linha aleatória do grid.
+
+        Usa a imagem correspondente à onda atual (máximo onda 4 para imagens;
+        onda 5 reutiliza a imagem 4). Reseta o contador de spawn.
+        """
         lane = random.randint(0, self.ROWS - 1)
         img  = self.pragas_imgs[self.onda] if self.onda <= 4 else self.pragas_imgs[4]
         self.pragas.append(Praga(
@@ -194,6 +336,8 @@ class JogoZombies:
         self.spawn_timer = 0
 
     def _spawnar_boss(self):
+        """
+        Cria o boss em uma linha aleatória. Chamado apenas uma vez na onda 5."""
         lane = random.randint(0, self.ROWS - 1)
         self.pragas.append(Boss(
             lane, self.boss_img,
@@ -202,12 +346,36 @@ class JogoZombies:
         self.boss_spawnado = True
 
     def _planta_em(self, px, py):
+        """
+        Verifica se já existe uma planta na célula informada.
+
+        Args:
+            px (int): Posição X do canto superior esquerdo da célula.
+            py (int): Posição Y do canto superior esquerdo da célula.
+
+        Returns:
+            Planta | None: A planta encontrada ou None se a célula estiver vazia.
+        """
         for p in self.plantas:
             if p.x == px and p.y == py:
                 return p
         return None
 
     def processar_eventos(self):
+        """
+        Lê e trata todos os eventos do pygame no frame atual.
+
+        - QUIT → fecha o jogo.
+        - ESC → retorna ao menu (retorna False).
+        - R (fora de PLAYING) → reinicia a partida.
+        - Clique no painel superior → seleciona camomila, babosa, espada ou pá.
+        - Clique no grid (PLAYING):
+            - Com pá selecionada → remove a planta naquela célula.
+            - Com planta selecionada e célula vazia → planta se houver dinheiro.
+
+        Returns:
+            bool: False para sinalizar saída ao menu, True para continuar.
+        """
         mouse_pos = pygame.mouse.get_pos()
 
         for event in pygame.event.get():
@@ -257,6 +425,21 @@ class JogoZombies:
         return True
 
     def atualizar(self):
+        """
+        Atualiza toda a lógica do jogo por frame durante "PLAYING".
+
+        Responsabilidades:
+        - Ciclo de sol: a cada 300 frames cada camomila gera $20.
+        - Disparo da babosa: a cada 90 frames, se houver inimigo na linha.
+        - Spawn de pragas: progressivo com base na onda e no número já spawnado.
+        - Avanço de onda: quando todas as pragas da onda morrem.
+        - Boss: spawnado uma única vez na onda MAX_ONDAS.
+        - Vitória: boss derrotado sem pragas restantes.
+        - Movimento de pragas e colisão com plantas: pragas que cruzam o
+          lado esquerdo causam game over; pragas que colidem com plantas
+          param e causam dano por frame.
+        - Movimento de projéteis e colisão com inimigos: 20 de dano por acerto.
+        """
         if self.estado != "PLAYING":
             return
 
@@ -327,6 +510,13 @@ class JogoZombies:
                     self.projeteis.remove(b)
 
     def desenhar(self):
+        """
+        Renderiza a tela completa: fundo, grama, grid, entidades, painel
+        superior e, se necessário, sobreposição de fim de jogo.
+
+        A sobreposição semi-transparente aparece nos estados "GAME_OVER"
+        e "VICTORY" com instruções para reiniciar ou sair.
+        """
         # 1. Fundo Preto
         self.tela.fill(COR_FUNDO)
 
@@ -415,6 +605,11 @@ class JogoZombies:
             self.tela.blit(txt2, (self.WIDTH//2 - txt2.get_width()//2, self.HEIGHT//2 + 40))
 
     def executar(self):
+        """
+        Loop principal do jogo. Roda a 60 FPS até o jogador pressionar ESC.
+
+        Ao sair, chama _resetar() antes de devolver o controle ao menu.
+        """
         while True:
             if not self.processar_eventos():
                 self._resetar()
@@ -426,6 +621,12 @@ class JogoZombies:
 
 
 def rodar_pvz(tela):
+    """
+    Ponto de entrada do minigame de defesa chamado pelo menu principal.
+
+    Args:
+        tela (pygame.Surface): Superfície compartilhada com o menu.
+    """
     jogo = JogoZombies(tela)
     jogo.executar()
 
