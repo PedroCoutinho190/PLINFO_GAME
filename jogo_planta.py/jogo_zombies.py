@@ -19,8 +19,6 @@ def load_image(path, size, fallback_color):
 
     Se o arquivo não for encontrado, retorna uma superfície colorida
     com as dimensões informadas como fallback.
-
-    Args:
         path (str): Nome do arquivo dentro da pasta "imagens/".
         size (tuple): Tamanho desejado (largura, altura) em pixels.
         fallback_color (tuple): Cor RGB usada se a imagem não existir.
@@ -175,8 +173,8 @@ class Boss:
         self.x      = width
         self.y      = grid_offset_y + lane * cell_size - 10
         self.speed  = 0.3
-        self.hp     = 1000
-        self.hp_max = 1000
+        self.hp     = 2500
+        self.hp_max = 2500
         self.lane   = lane
         self.rect   = pygame.Rect(self.x, self.y, 90, 90)
         self.img    = img

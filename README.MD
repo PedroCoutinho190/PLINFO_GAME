@@ -220,6 +220,11 @@ Atenção: não execute o jogo de dentro da pasta `jogo_planta.py`, pois os cami
 - Pressione `R` para reiniciar após vitória ou derrota.
 - Pressione `ESC` para voltar ao menu.
 
+## Docs com Alguns comentários do Projeto
+
+- Renato Rodrigues:
+https://docs.google.com/document/d/1rAh447dGLOKt7nrgF9CXkrA-DALi1fet/edit?usp=sharing&ouid=107511788663849416411&rtpof=true&sd=true
+
 ## Autoria
 
 - Renato Rodrigues Barbosa Filho

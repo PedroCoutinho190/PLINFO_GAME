@@ -72,12 +72,7 @@ class Botao:
 
         Usa a posição original do botão como hitbox para garantir que
         o clique seja detectado mesmo durante a animação de afundar.
-
-        Args:
-            evento (pygame.event.Event): Evento do pygame a ser verificado.
-
-        Returns:
-            bool: True se o botão foi clicado, False caso contrário.
+        True se o botão foi clicado, False caso contrário.
         """
         # Usamos o rect_original para garantir que o clique registre mesmo se o botão se mover no hover
         if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
@@ -137,7 +132,7 @@ class MenuJogos:
         self.btn_quiz = Botao(x_centralizado, 200, largura_btn, altura_btn, "Quiz Botânico")
         self.btn_memoria = Botao(x_centralizado, 290, largura_btn, altura_btn, "Jogo da Memória")
         self.btn_proteger = Botao(x_centralizado, 380, largura_btn, altura_btn, "Proteja a Planta")
-        self.btn_zombie = Botao(x_centralizado, 470, largura_btn, altura_btn, "Plants vs Plugs")
+        self.btn_zombie = Botao(x_centralizado, 470, largura_btn, altura_btn, "Plants vs Pests")
 
         self.botoes = [
             self.btn_quiz,
